@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import random
 import os
 import deeplenstronomy.deeplenstronomy as dl
 import torch
@@ -18,6 +19,7 @@ class  Residual:
             path_config_model (string): 
             size (integer): Size of the data set
         """
+        random.seed(2)
         self.path_config_img = path_config_img
         self.path_config_model = path_config_model
         self.size = size
@@ -44,11 +46,17 @@ class  Residual:
         metadata = pd.DataFrame()
         k = 0
         for i in np.arange(1,self.size):
-            metadata_source_mass = pd.concat([dataset_model.CONFIGURATION_1_metadata.take([i])]*(self.size-1), 
+            metadata_source_mass = pd.concat([dataset_model.CONFIGURATION_1_metadata.take([i])]*(4), 
                                              ignore_index=True)
             bool_mdimg = []
             ID_img = []
-            for j in np.arange(1, self.size):
+            
+            test = np.array([i])
+            while test.shape[0]!=4:
+                r=random.randint(1,self.size-1)
+                if r not in test: test = np.append(test, r)
+                 
+            for j in test:
                 if i!=j:
                     bool_mdimg.append(errorID)
                     file_name = "DeeplenstronomyDataset/DataSet/"+"E"+str(errorID)+"S"+str(k)+".csv"
@@ -57,7 +65,7 @@ class  Residual:
                     bool_mdimg.append(0)
                     file_name = "DeeplenstronomyDataset/DataSet/"+"E"+str(0)+"S"+str(k)+".csv"
                     ID_img.append('E'+str(0) + 'S' + str(k))
-                    
+                
                 # Residual between two images i and j
                 residual = dataset_img.CONFIGURATION_1_images[j][0]-dataset_model.CONFIGURATION_1_images[i][0]
                 file_array = residual.ravel()
