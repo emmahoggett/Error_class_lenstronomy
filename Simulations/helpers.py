@@ -1,82 +1,56 @@
 import numpy as np
 import pandas as pd
-import random
-import os
-import deeplenstronomy.deeplenstronomy as dl
+import h5py
 import torch
-
-from numpy import genfromtxt
 from torch.utils.data import Dataset
 
+from sklearn.metrics import hamming_loss, accuracy_score, precision_score, recall_score,f1_score
+# Use threshold to define predicted labels and invoke sklearn's metrics with different averaging strategies.
+
+hdf5_dir = "drive/My Drive/Colab Notebooks/deeplens/data/dataSet/"
 
 
-class  Residual:
+def store_hdf5(images, labels, ID, path = hdf5_dir):
+    """ Stores an array of images to HDF5.
+        Parameters:
+        ---------------
+        images       images array, (N, 64, 64, 1) to be stored
+        labels       labels array, (N, 1) to be stored
+    """
 
-    def __init__(self, path_config_img, path_config_model, size):
-        """
-        Args:
-            path_config_img (string): Configuration path for the images
-            path_config_model (string): 
-            size (integer): Size of the data set
-        """
-        random.seed(2)
-        self.path_config_img = path_config_img
-        self.path_config_model = path_config_model
-        self.size = size
+    # Create a new HDF5 file
+    file = h5py.File(path +str(ID)+"_lens.h5", "w")
 
-    def build(self, errorID):
-        """
-        This function builds the dataset by using the configuration file given by the user.
-        This dataset ends up in the folder DeeplenstronomyDataset/DataSet/. The file ID is 
-        coded as following : E[error number]S[sample number].csv
-            ex : E3S10 : 10th sample that correspond to a source and mass error(3).
-        In the metadata, some informations are added such as the file ID and the type of error.
-        !!! The errorID must absolutely match the configuration file or the data set will be false !!!
-        Args:
-            errorID (integer): Value that correspond to the type of error
-                    - 0 : no error
-                    - 1 : mass error
-                    - 2 : source error
-                    - 3 : source and mass error
-        """
-        # Use deeplenstronomy to make a data set
-        dataset_model = dl.make_dataset(self.path_config_model)
-        dataset_img = dl.make_dataset(self.path_config_img)
-        
-        metadata = pd.DataFrame()
-        k = 0
-        for i in np.arange(1,self.size):
-            metadata_source_mass = pd.concat([dataset_model.CONFIGURATION_1_metadata.take([i])]*(4), 
-                                             ignore_index=True)
-            bool_mdimg = []
-            ID_img = []
-            
-            test = np.array([i])
-            while test.shape[0]!=4:
-                r=random.randint(1,self.size-1)
-                if r not in test: test = np.append(test, r)
-                 
-            for j in test:
-                if i!=j:
-                    bool_mdimg.append(errorID)
-                    file_name = "DeeplenstronomyDataset/DataSet/"+"E"+str(errorID)+"S"+str(k)+".csv"
-                    ID_img.append('E'+str(errorID) + 'S' + str(k))
-                else:
-                    bool_mdimg.append(0)
-                    file_name = "DeeplenstronomyDataset/DataSet/"+"E"+str(0)+"S"+str(k)+".csv"
-                    ID_img.append('E'+str(0) + 'S' + str(k))
-                
-                # Residual between two images i and j
-                residual = dataset_img.CONFIGURATION_1_images[j][0]-dataset_model.CONFIGURATION_1_images[i][0]
-                file_array = residual.ravel()
-                np.savetxt(file_name, file_array, delimiter=",")
-                k = k + 1
-            # Add the type of error in the metadata and the ID of the image
-            metadata_source_mass['class'] = bool_mdimg
-            metadata_source_mass['ID'] = ID_img
-            metadata = pd.concat([metadata,metadata_source_mass])
-        file_name = "DeeplenstronomyDataset/DataSet/"+"MetaE"+str(errorID)+".csv"
-        metadata.to_csv(file_name,index=False)
+    # Create a dataset in the file
+    dataset = file.create_dataset(
+        "images", np.shape(images), h5py.h5t.IEEE_F64BE, data=images
+    )
+    file.close()
+
+    labels.to_hdf(path +str(ID)+'_meta.h5', "table")
+
+def read_hdf5(ID_images, path = hdf5_dir):
+    """ Reads image from HDF5.
+        Parameters:
+        ---------------
+        num_images   number of images to read
+
+        Returns:
+        ----------
+        images      images array, (N, 1, 64, 64) to be stored
+        labels      associated meta data, int label (N, 1)
+    """
+    images, labels = [], []
+
+    # Open the HDF5 file
+    file = h5py.File(path +str(ID_images)+"_lens.h5", "r")
+
+    images = np.array(file["/images"]).astype("float64")
+    labels = pd.read_hdf(path +str(ID_images)+'_meta.h5', "table")
+
+    return images, labels
+    
+
 
         
 class CombineDataset(Dataset):
@@ -85,7 +59,7 @@ class CombineDataset(Dataset):
     metadata.
     """
 
-    def __init__(self, frame, id_col, label_name, path_imgs, nb_channel = 1):
+    def __init__(self, frame, id_col, label_name, image, nb_channel = 1):
         """
         Args:
             frame (pd.DataFrame): Frame with the tabular data.
@@ -97,9 +71,9 @@ class CombineDataset(Dataset):
         self.frame = frame
         self.id_col = id_col
         self.label_name = label_name
-        self.path_imgs = path_imgs
+        self.image = image
         self.nb_channel = nb_channel
-
+        
     def __len__(self):
         return (self.frame.shape[0])
 
@@ -108,9 +82,7 @@ class CombineDataset(Dataset):
             idx = idx.tolist()
         #complete image path and read
         img_name = self.frame[self.id_col].iloc[idx]
-        path = os.path.join(self.path_imgs,img_name) + '.csv'
-        image = genfromtxt(path, delimiter=',')
-        image = image.reshape(self.nb_channel, 64, 64)
+        image = self.image[img_name]
         image = torch.from_numpy(image.astype(np.float32))
 
         #get the other features to be used as training data
@@ -123,4 +95,72 @@ class CombineDataset(Dataset):
         label = np.array(self.frame[self.label_name].iloc[idx])
         label = torch.from_numpy(label.astype(np.float32))
 
-        return image, feats, label
+        return  image, feats, label
+
+
+def calculate_metrics(pred, target, threshold=0.5):
+
+    pred = np.array(pred > threshold, dtype=float)
+
+    return {'match/ratio': accuracy_score(target, pred, normalize=True, sample_weight=None), 
+            'hamming': hamming_loss(target, pred),
+            'samples/precision': precision_score(y_true=target, y_pred=pred, average='samples'),
+            'samples/recall': recall_score(y_true=target, y_pred=pred, average='samples'),
+            'samples/f1': f1_score(y_true=target, y_pred=pred, average='samples'),
+            'accuracy': accuracy_score(target, pred)
+            }
+            
+            
+def train_net(loader, net, optimizer, criterion, epoch):
+        running_loss = 0.0
+        for i, data in enumerate(loader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, meta_inputs,labels = data
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+            
+            
+            # forward + backward + optimize
+            if net.netype() == 'conv':
+                outputs = net(inputs)
+            elif net.netype() == 'meta':
+                outputs = net(meta_inputs)
+            else :
+                outputs = net(inputs, meta_inputs)
+
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            running_loss += loss.item()
+            if i % 2000 == 1999:    # print every 2000 mini-batches
+                print('[%d, %5d] loss: %.3f' %
+                    (epoch + 1, i + 1, running_loss / 2000))
+                running_loss = 0.0
+                
+def test_net(loader,net):
+        accuracy = 0
+        iteration = 0
+        with torch.no_grad():
+            predictions = []
+            targets = []
+            for data in loader:
+                images, meta_img, labels = data
+                # forward + backward + optimize
+                if net.netype() == 'conv':
+                    outputs = net(images)
+                elif net.netype() == 'meta':
+                    outputs = net(meta_img)
+                else :
+                    outputs = net(images, meta_img)
+
+                predictions.extend(outputs.cpu().numpy())
+                targets.extend(labels.cpu().numpy())
+                result = calculate_metrics(np.round(np.array(predictions)), np.array(targets))
+                accuracy+=result['samples/recall']
+                iteration+=1
+
+        mean_accuracy =accuracy/(iteration+1)
+        return mean_accuracy
