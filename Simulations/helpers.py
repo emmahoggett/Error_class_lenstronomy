@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from sklearn.metrics import hamming_loss, accuracy_score, precision_score, recall_score,f1_score
 # Use threshold to define predicted labels and invoke sklearn's metrics with different averaging strategies.
 
-hdf5_dir = "drive/My Drive/Colab Notebooks/deeplens/data/dataSet/"
+hdf5_dir = "data/dataSet/"
 
 
 def store_hdf5(images, labels, ID, path = hdf5_dir):
@@ -75,9 +75,11 @@ class CombineDataset(Dataset):
         self.nb_channel = nb_channel
         
     def __len__(self):
+        """Return the number of samples, which correspond to the length of the metadata."""
         return (self.frame.shape[0])
 
     def __getitem__(self, idx):
+        """"""
         if torch.is_tensor(idx):
             idx = idx.tolist()
         #complete image path and read
@@ -102,12 +104,12 @@ def calculate_metrics(pred, target, threshold=0.5):
 
     pred = np.array(pred > threshold, dtype=float)
 
-    return {'match/ratio': accuracy_score(target, pred, normalize=True, sample_weight=None), 
+    return {'match/ratio': accuracy_score(target, pred, normalize = True, sample_weight = None), 
             'hamming': hamming_loss(target, pred),
-            'samples/precision': precision_score(y_true=target, y_pred=pred, average='samples'),
-            'samples/recall': recall_score(y_true=target, y_pred=pred, average='samples'),
-            'samples/f1': f1_score(y_true=target, y_pred=pred, average='samples'),
-            'accuracy': accuracy_score(target, pred)
+            'samples/precision': precision_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
+            'samples/recall': recall_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
+            'samples/f1': f1_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
+            'accuracy': accuracy_score(y_true = target, y_pred = pred)
             }
             
             
@@ -122,9 +124,9 @@ def train_net(loader, net, optimizer, criterion, epoch):
             
             
             # forward + backward + optimize
-            if net.netype() == 'conv':
+            if net.typenet == 'conv':
                 outputs = net(inputs)
-            elif net.netype() == 'meta':
+            elif net.typenet == 'meta':
                 outputs = net(meta_inputs)
             else :
                 outputs = net(inputs, meta_inputs)
@@ -149,9 +151,9 @@ def test_net(loader,net):
             for data in loader:
                 images, meta_img, labels = data
                 # forward + backward + optimize
-                if net.netype() == 'conv':
+                if net.typenet == 'conv':
                     outputs = net(images)
-                elif net.netype() == 'meta':
+                elif net.typenet == 'meta':
                     outputs = net(meta_img)
                 else :
                     outputs = net(images, meta_img)

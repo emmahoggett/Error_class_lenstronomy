@@ -4,10 +4,10 @@ import torch.nn.functional as F
 
 from collections import OrderedDict
 from torch import Tensor
-
+from typing import Any
 
 class _Transition(nn.Sequential):
-    def __init__(self, num_input_features, num_output_features):
+    def __init__(self, num_input_features: int, num_output_features: int):
         super(_Transition, self).__init__()
         self.add_module('norm', nn.BatchNorm2d(num_input_features))
         self.add_module('relu', nn.ReLU(inplace=True))
@@ -16,7 +16,7 @@ class _Transition(nn.Sequential):
         self.add_module('pool', nn.AvgPool2d(kernel_size=2, stride=2))
 
 class _DenseLayer(nn.Module):
-    def __init__(self, num_input_features, growth_rate, bn_size, drop_rate, memory_efficient=False):
+    def __init__(self, num_input_features:int, growth_rate, bn_size, drop_rate, memory_efficient=False):
         super(_DenseLayer, self).__init__()
         self.add_module('norm1', nn.BatchNorm2d(num_input_features)),
         self.add_module('relu1', nn.ReLU(inplace=True)),
@@ -31,7 +31,7 @@ class _DenseLayer(nn.Module):
         self.drop_rate = float(drop_rate)
         self.memory_efficient = memory_efficient
 
-    def bn_function(self, inputs):
+    def bn_function(self, inputs: torch.Tensor):
         "Bottleneck function"
         # type: (List[Tensor]) -> Tensor
         concated_features = torch.cat(inputs, 1)
@@ -54,7 +54,7 @@ class _DenseLayer(nn.Module):
 class _DenseBlock(nn.ModuleDict):
     _version = 2
 
-    def __init__(self, num_layers, num_input_features, bn_size, growth_rate, drop_rate, memory_efficient=False):
+    def __init__(self, num_layers: int, num_input_features: int, bn_size:int, growth_rate:int, drop_rate:float, memory_efficient:bool=False):
         super(_DenseBlock, self).__init__()
         for i in range(num_layers):
             layer = _DenseLayer(
@@ -77,8 +77,8 @@ class _DenseBlock(nn.ModuleDict):
 
 
 class DenseNet(nn.Module):
-    def __init__(self, growth_rate=32, block_config=(6, 12, 24, 16),
-                 num_init_features=64, bn_size=4, drop_rate=0, num_classes=3, memory_efficient=False):
+    def __init__(self, growth_rate: int=32, block_config: tuple=(6, 12, 24, 16),
+                 num_init_features:int=64, bn_size:int=4, drop_rate:float=0, num_classes:int=3, memory_efficient:bool=False):
 
         super(DenseNet, self).__init__()
 
@@ -129,7 +129,7 @@ class DenseNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         features = self.features(x)
         out = F.relu(features, inplace=True)
         out = F.adaptive_avg_pool2d(out, (1, 1))
@@ -137,11 +137,23 @@ class DenseNet(nn.Module):
         out = F.sigmoid(self.classifier(out))
         return out
         
-def _densenet(arch, growth_rate, block_config, num_init_features, pretrained, progress,
+def _densenet(arch:str, growth_rate:int, block_config:tuple, num_init_features:int, pretrained:bool, progress:bool,
               **kwargs):
     model = DenseNet(growth_rate, block_config, num_init_features, **kwargs)
     return model
 
-def densenet121(pretrained=False, progress=True, **kwargs):
+def densenet121(pretrained:bool=False, progress:bool=True, **kwargs):
     return _densenet('densenet121', 32, (6, 12, 24, 16), 64, pretrained, progress,
                      **kwargs)        
+
+def densenet161(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> DenseNet:
+    r"""Densenet-161 model from
+    `"Densely Connected Convolutional Networks" <https://arxiv.org/pdf/1608.06993.pdf>`_.
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+        memory_efficient (bool) - If True, uses checkpointing. Much more memory efficient,
+          but slower. Default: *False*. See `"paper" <https://arxiv.org/pdf/1707.06990.pdf>`_.
+    """
+    return _densenet('densenet161', 48, (6, 12, 36, 24), 96, pretrained, progress,
+                     **kwargs)

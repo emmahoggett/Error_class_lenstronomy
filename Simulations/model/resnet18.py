@@ -235,10 +235,7 @@ class ResNet(nn.Module):
         self.encoder = ResNetEncoder(in_channels, *args, **kwargs)
         self.decoder = ResnetDecoder(self.encoder.blocks[-1].blocks[-1].expanded_channels, n_classes)
         self.typenet = 'conv'
-        
-    def netype(self):
-        return (self.typenet)
-        
+         
     def forward(self, x):
         x = self.encoder(x)
         x = self.decoder(x)
@@ -258,73 +255,3 @@ def resnet101maps(in_channels, n_classes, block=ResNetBottleNeckBlock, *args, **
 
 def resnet152maps(in_channels, n_classes, block=ResNetBottleNeckBlock, *args, **kwargs):
     return ResNet(in_channels, n_classes, block=block, deepths=[3, 8, 36, 3], *args, **kwargs)
-    
-##########################      Metadata and Residual maps combination      ##########################
-class ResnetDecoderMetadata(nn.Module):
-    """
-    This class represents the tail of ResNet. It performs a global pooling and maps the output to the
-    correct class by using a fully connected layer. The output has a sigmoid activation function to 
-    use a binary cross entropy criterion for multilabeling.
-    Inputs :
-        - in_channels   :  Number of input channels. This value correspond to the output length of
-                           the flatten convolutionnal output.
-        - n_classes     :  Number of output labels.
-    """
-    def __init__(self, in_features, metadata_size, n_classes):
-        super().__init__()
-        self.avg = nn.AdaptiveAvgPool2d((1, 1))
-        self.decoder = nn.Linear(in_features+256, n_classes)
-        self.fc_data = nn.Sequential(
-            nn.Linear(metadata_size, 64),nn.ReLU(True),
-            nn.Linear(64, 192), nn.ReLU(True),
-            nn.Linear(192, 384), nn.ReLU(True),
-            nn.Linear(384, 256), nn.ReLU(True),
-            nn.Linear(256, 256), nn.ReLU(True),             
-        )
-
-    def forward(self, img, meta):
-        img = self.avg(img)
-        img = img.view(img.size(0), -1)
-        
-        data = self.fc_data(meta)
-        x = torch.cat((img, data), dim=1)
-        x = self.decoder(x)
-        x = F.sigmoid(x)
-        return x
-
-
-class ResNetMetadata(nn.Module):
-    """
-    Combine the encoder and the decoder.
-    Inputs :
-            - in_channels   :  Number of input channels. The channel is set by default to 1.
-            - n_classes     :  Number of output labels.
-    """
-    def __init__(self, in_channels, metadata_size, n_classes, *args, **kwargs):
-        super().__init__()
-        self.encoder = ResNetEncoder(in_channels, *args, **kwargs)
-        self.decoder = ResnetDecoderMetadata(self.encoder.blocks[-1].blocks[-1].expanded_channels, metadata_size, n_classes)
-        self.typenet = 'convXmeta'
-        
-    def netype(self):
-        return (self.typenet)
-        
-    def forward(self, img, meta):
-        img = self.encoder(img)
-        x = self.decoder(img,meta)
-        return x
-        
-def resnet18meta(in_channels, metadata_size, n_classes, block=ResNetBasicBlock, *args, **kwargs):
-    return ResNetMetadata(in_channels, metadata_size, n_classes, block=block, deepths=[2, 2, 2, 2], *args, **kwargs)
-    
-def resnet34meta(in_channels, metadata_size, n_classes, block=ResNetBasicBlock, *args, **kwargs):
-    return ResNetMetadata(in_channels, metadata_size, n_classes, block=block, deepths=[3, 4, 6, 3], *args, **kwargs)
-
-def resnet50meta(in_channels, metadata_size, n_classes, block=ResNetBottleNeckBlock, *args, **kwargs):
-    return ResNetMetadata(in_channels, metadata_size, n_classes, block=block, deepths=[3, 4, 6, 3], *args, **kwargs)
-
-def resnet101meta(in_channels, metadata_size, n_classes, block=ResNetBottleNeckBlock, *args, **kwargs):
-    return ResNetMetadata(in_channels, metadata_size, n_classes, block=block, deepths=[3, 4, 23, 3], *args, **kwargs)
-
-def resnet152meta(in_channels, metadata_size, n_classes, block=ResNetBottleNeckBlock, *args, **kwargs):
-    return ResNetMetadata(in_channels, metadata_size, n_classes, block=block, deepths=[3, 8, 36, 3], *args, **kwargs)

@@ -13,37 +13,34 @@ class CNNNetBasic(nn.Module):
         self.fc1 = nn.Linear(16 * 13 * 13, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 3)
+        self.sigmoid = nn.Sigmoid()
         self.typenet = 'conv'
         
-    def netype(self):
-        return (self.typenet)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         x = self.pool(F.selu(self.conv1(x)))
         x = self.pool(F.selu(self.conv2(x)))
         x = x.view(x.size(0), 16 * 13 * 13)
         x = F.selu(self.fc1(x))
         x = F.selu(self.fc2(x))
-        x = F.sigmoid(self.fc3(x))
+        x = self.sigmoid(self.fc3(x))
         return x
         
 class TabularNetBasic(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.fc1 = nn.Linear(8, 16)
+        self.fc1 = nn.Linear(11, 16)
         self.fc2 = nn.Linear(16, 8)
         self.fc3 = nn.Linear(8, 3)
         self.typenet = 'meta'
-        
-    def netype(self):
-        return (self.typenet)
 
-    def forward(self, x):
+
+    def forward(self, x: torch.Tensor):
 
         x = F.selu(self.fc1(x))
         x = F.selu(self.fc2(x))
-        x = F.sigmoid(self.fc3(x))
+        x = nn.Sigmoid(self.fc3(x))
 
         return x
 
@@ -51,7 +48,7 @@ class TabularCNNNetBasic(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.fc1_data = nn.Linear(8, 16)
+        self.fc1_data = nn.Linear(11, 16)
         self.fc2_data = nn.Linear(16, 8)
 
         self.conv1_img = nn.Conv2d(1, 6, kernel_size=5)
@@ -64,10 +61,8 @@ class TabularCNNNetBasic(nn.Module):
         self.fc2 = nn.Linear(60, 3)
         self.typenet = 'convXmeta'
         
-    def netype(self):
-        return (self.typenet)
 
-    def forward(self, img, data):
+    def forward(self, img: torch.Tensor, data: torch.Tensor):
 
         data = F.selu(self.fc1_data(data))
         data = F.selu(self.fc2_data(data))
@@ -80,7 +75,7 @@ class TabularCNNNetBasic(nn.Module):
 
         x = torch.cat((img, data), dim=1)
         x = F.relu(self.fc1(x))
-        x = F.sigmoid(self.fc2(x))
+        x = nn.Sigmoid(self.fc2(x))
 
         return x
         
