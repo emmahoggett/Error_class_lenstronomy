@@ -15,8 +15,9 @@ import math
     
 class LensDataset:
     """Class that build the dataset in lenstronomy and """
-    def __init__(self, size:int, errorID:int, seed = 0, center_x = 0, center_y = 0, param_range = None):
+    def __init__(self, size:int, seed:int = 0, center_x = 0, center_y = 0, param_range = None):
         """Initialization of the object LensDataset."""
+        random.seed(seed)
         
         if param_range is None:
             amp_range = [20,24]; thetaE_range = [1, 2]; gamma_range = [1.8, 2.2]; q_range = [0.7, 1];
@@ -53,18 +54,12 @@ class LensDataset:
         self.images = np.zeros((self.size, 1,64,64))
             
         for i in np.arange(0,self.param_range.shape[0]):
-            self.data[:,i] = np.random.default_rng(seed).uniform(self.param_range[i,0],self.param_range[i,1],self.size)
+            self.data[:,i] = np.random.uniform(self.param_range[i,0],self.param_range[i,1],self.size)
             if i == 3 or i == 8:
-                q =  np.random.default_rng(i).uniform(self.param_range[i,0],self.param_range[i,1],self.size)
-                phi = np.random.default_rng(i).uniform(self.param_range[i,0],self.param_range[i,1],self.size)
+                q =  np.random.uniform(self.param_range[i,0],self.param_range[i,1],self.size)
+                phi = np.random.uniform(self.param_range[i,0],self.param_range[i,1],self.size)
                 self.data[:,i-1] = (1-q[:])/(1+q[:])*np.cos(phi[:])
                 self.data[:,i] = (1-q[:])/(1+q[:])*np.sin(phi[:])
-                
-            
-        if errorID == 1:
-            self.data[:,4:10] = self.data[0,4:10]
-        elif errorID == 2:
-            self.data[:,0:3] = self.data[0,0:3]
         
         
         self.metadata = pd.DataFrame(data=self.data)
@@ -100,7 +95,7 @@ class  Residual:
         random.seed(2)
         self.size = size
 
-    def build(self, errorID, samedat_size = 4, path_data="data/dataSet/"):
+    def build(self, errorID, samedat_size = 3, per_error = 0.1, path_data="data/dataSet/"):
         """
         This function builds the dataset by using the configuration file given by the user.
         This dataset ends up in the folder data/dataSet/. The file ID is 
@@ -117,7 +112,7 @@ class  Residual:
             path_data (string): Location where the dataset will be saved. The default spot is 'data/dataSet/'.
         """
         # Use lenstronomy to make a data set
-        dataset_model = LensDataset(size = self.size, errorID = errorID)
+        dataset_model = LensDataset(size = self.size)
         self.path_data = path_data
 
         self.channels = dataset_model.images.shape[1]
@@ -130,38 +125,69 @@ class  Residual:
             error = np.array([0,1,1])       #mass & source error
         
         metadata = pd.DataFrame()
-        residuals = np.zeros((self.size*samedat_size, self.channels,64,64))
+        residuals = np.zeros((self.size*(samedat_size+1), self.channels,64,64))
         k = 0
         
+        range_data = dataset_model.param_range[:,1] - dataset_model.param_range[:,0]
+        range_masse = (1- dataset_model.param_range[3,0])/(1 + dataset_model.param_range[3,0])
+        range_sersice = (1- dataset_model.param_range[7,0])/(1 + dataset_model.param_range[7,0])
+        
         for i in np.arange(0,self.size):
-            metadata_temp = pd.concat([dataset_model.metadata.take([i])]*(samedat_size), ignore_index=True)
+            metadata_temp = pd.concat([dataset_model.metadata.take([i])]*(samedat_size+1), ignore_index=True)
             bool_mdimg = np.array([], dtype='int')
-            
-            test = np.array([i])
-            while test.shape[0]!=samedat_size:
-                r=random.randint(1,self.size-1)
-                if r not in test: test = np.append(test, r)
+    
+            img_test = np.zeros((samedat_size, self.channels,64,64))
+            for t in range(0,samedat_size):
+                    kwargs_spemd = {'theta_E': dataset_model.metadata['MASS_PROFILE_theta_E'][i] + random.uniform(-1, 1)*per_error*range_data[0], 'gamma': dataset_model.metadata['MASS_PROFILE_gamma'][i]+ random.uniform(-1, 1)*per_error*range_data[1], 
+                                    'center_x': dataset_model.center_x, 'center_y': dataset_model.center_y, 
+                                    'e1':dataset_model.metadata['MASS_PROFILE_e1'][i] + random.uniform(-1, 1)*per_error*2*range_masse, 'e2': dataset_model.metadata['MASS_PROFILE_e2'][i] + random.uniform(-1, 1)*per_error*range_masse} 
                 
-                
-            for j in test:
-                curr_error = np.array([0,0,0])
-                if i!=j:
-                    curr_error = error
+                    # Sersic parameters in the initial simulation for the source
+                    kwargs_sersic = {'amp':  dataset_model.metadata['SOURCE_PROFILE_amp'][i]+ random.uniform(-1, 1)*per_error*range_data[4], 'R_sersic': dataset_model.metadata['SOURCE_PROFILE_R_sersic'][i] + random.uniform(-1, 1)*per_error*range_data[5],
+                                     'n_sersic':  dataset_model.metadata['SOURCE_PROFILE_n_sersic'][i]+ random.uniform(-1, 1)*per_error*range_data[6], 'e1':  dataset_model.metadata['SOURCE_PROFILE_e1'][i]+ random.uniform(-1, 1)*per_error*range_sersice*2, 
+                                     'e2':  dataset_model.metadata['SOURCE_PROFILE_e2'][i]+ random.uniform(-1, 1)*per_error*range_sersice , 'center_x': dataset_model.metadata['SOURCE_PROFILE_center_x'][i]+ random.uniform(-1, 1)*per_error*range_data[9], 
+                                     'center_y':  dataset_model.metadata['SOURCE_PROFILE_center_y'][i] + random.uniform(-1, 1)*per_error*range_data[10]}
+                    if errorID == 1:
+                        # Sersic parameters in the initial simulation for the source
+                        kwargs_sersic = {'amp':  dataset_model.metadata['SOURCE_PROFILE_amp'][i], 'R_sersic': dataset_model.metadata['SOURCE_PROFILE_R_sersic'][i],
+                                        'n_sersic':  dataset_model.metadata['SOURCE_PROFILE_n_sersic'][i], 'e1':  dataset_model.metadata['SOURCE_PROFILE_e1'][i], 
+                                        'e2':  dataset_model.metadata['SOURCE_PROFILE_e2'][i], 'center_x': dataset_model.metadata['SOURCE_PROFILE_center_x'][i], 
+                                        'center_y':  dataset_model.metadata['SOURCE_PROFILE_center_y'][i]}
+                    elif errorID == 2:
+                        kwargs_spemd = {'theta_E': dataset_model.metadata['MASS_PROFILE_theta_E'][i], 'gamma': dataset_model.metadata['MASS_PROFILE_gamma'][i], 
+                                        'center_x': dataset_model.center_x, 'center_y': dataset_model.center_y, 
+                                        'e1':dataset_model.metadata['MASS_PROFILE_e1'][i], 'e2': dataset_model.metadata['MASS_PROFILE_e2'][i]} 
                     
                     
+                    kwargs_source = [kwargs_sersic]
+                    kwargs_lens = [kwargs_spemd]
+                    # generate image
+                    img_test[t,:,:,:] = dataset_model.img_sim.image(kwargs_lens, kwargs_source, kwargs_ps=None)
+                
+            for i_ch in np.arange(0,self.channels):
+                image_model = dataset_model.images[i][i_ch]
+                image_real = dataset_model.images[i][i_ch] + dataset_model.image_config.noise_for_model(model = dataset_model.images[i][i_ch])
+                sigma = np.sqrt(dataset_model.img_sim.Data.C_D_model(model = dataset_model.images[i][i_ch]))
+                residuals[k,i_ch,:,:] = (image_real-image_model)/sigma
+            bool_mdimg = np.concatenate((bool_mdimg, np.array([1,0,0])))
+            k = k+1
+        
+            for j in range(0,samedat_size):
+                curr_error = error
                 bool_mdimg = np.concatenate((bool_mdimg,curr_error))
                 # Residual between two images i and j - the residual map is normalized and stored
                 for i_ch in np.arange(0,self.channels):
-                    image_model = dataset_model.images[j][i_ch]
+                    image_model = img_test[j][i_ch]
                     image_real = dataset_model.images[i][i_ch] + dataset_model.image_config.noise_for_model(model = dataset_model.images[i][i_ch])
                     sigma = np.sqrt(dataset_model.img_sim.Data.C_D_model(model = dataset_model.images[i][i_ch]))
                     residuals[k,i_ch,:,:] = (image_real-image_model)/sigma
                 k = k+1
-                
+            
+            self.residuals = residuals    
             # Add the type of error in the metadata and the ID of the image
             metadata_temp['class'] = np.reshape(bool_mdimg, (-1, 3)).tolist()
             
             metadata = pd.concat([metadata,metadata_temp])
+            self.metadata = metadata
         # Store the data set as a hdf5 file
         store_hdf5(residuals, metadata, errorID, path = self.path_data)
-    
