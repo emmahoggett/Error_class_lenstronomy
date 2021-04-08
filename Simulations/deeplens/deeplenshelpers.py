@@ -95,14 +95,14 @@ class  ResidualDeepLens:
                 if i!=j:
                     bool_mdimg = np.concatenate((bool_mdimg,error))
                 else:
-                    bool_mdimg = np.concatenate((bool_mdimg,np.array([0,0,0])))
-                # Residual between two images i and j
+                    bool_mdimg = np.concatenate((bool_mdimg,np.array([1,0,0])))
+                
                 for i_ch in np.arange(0,self.channels):
                     image_model = dataset_model.CONFIGURATION_1_images[i][i_ch]
                     poisson = image_util.add_poisson(image_model, exp_time=exp_time)
                     bkg = image_util.add_background(image_model, sigma_bkd=background_rms)
                     image_real = image_model + poisson + bkg
-                    residuals[k,i_ch,:,:] =  image_real-image_model
+                    residuals[k,i_ch,:,:] =  image_real-dataset_model.CONFIGURATION_1_images[j][i_ch]
                 k = k+1
                 
             # Add the type of error in the metadata and the ID of the image
