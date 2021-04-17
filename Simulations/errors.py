@@ -1,4 +1,4 @@
-#  this file contains classes to make lens mass and source light dictionnaries
+#  this file contains classes to build lens mass and source light dictionnaries
 
 import numpy as np
 import pandas as pd
@@ -170,7 +170,7 @@ class SourceError():
         self.k_seed = 0
         self.type_error = np.array([0,0,1])
 
-    def get_kwargs(self, index):
+    def get_kwargs(self, index:int):
         """
         
         :param index : int, index of the sample
@@ -182,7 +182,7 @@ class SourceError():
                          'center_y':  self.metadata['SOURCE_PROFILE_center_y'][index]}
         return [kwargs_sersic]
     
-    def add_error(self, index, percent = 0.1):
+    def add_error(self, index:int, percent:float = 0.1):
         """
         
         :param index   : int, Index of the sample

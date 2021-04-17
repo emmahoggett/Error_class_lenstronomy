@@ -1,3 +1,4 @@
+# this file contains the classes for basic neural networks
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -5,6 +6,23 @@ import torch.nn.functional as F
 
 
 class CNNNetBasic(nn.Module):
+    """
+    Basic neural network class for residual maps. The output returns a sigmoid of size 3.
+    
+    Neural network structure :
+    
+    (conv_base):
+        (0): Conv2d(1, 6, kernel_size=(5, 5), stride=(1, 1))
+        (1): MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
+        (2): Conv2d(6, 16, kernel_size=(5, 5), stride=(1, 1))
+        
+    
+    (classifier): 
+        (0): Linear(in_features=2704, out_features=120, bias=True)
+        (1): Linear(in_features=120, out_features=84, bias=True)
+        (2): Linear(in_features=84, out_features=3, bias=True)
+        (3): Sigmoid()
+    """
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 6, kernel_size=5)
@@ -18,6 +36,11 @@ class CNNNetBasic(nn.Module):
         
 
     def forward(self, x: torch.Tensor):
+        """
+        
+        :param x : image tensor
+        :return  : forward neural network pass
+        """
         x = self.pool(F.selu(self.conv1(x)))
         x = self.pool(F.selu(self.conv2(x)))
         x = x.view(x.size(0), 16 * 13 * 13)
@@ -27,6 +50,17 @@ class CNNNetBasic(nn.Module):
         return x
         
 class TabularNetBasic(nn.Module):
+    """
+    Basic neural network class for metadata. The output returns a sigmoid of size 3.
+    
+    Neural network structure :
+    
+    (classifier): 
+        (0): Linear(in_features=11, out_features=16, bias=True)
+        (1): Linear(in_features=16, out_features=8, bias=True)
+        (2): Linear(in_features=8, out_features=3, bias=True)
+        (3): Sigmoid()
+    """
     def __init__(self):
         super().__init__()
 
@@ -34,17 +68,44 @@ class TabularNetBasic(nn.Module):
         self.fc2 = nn.Linear(16, 8)
         self.fc3 = nn.Linear(8, 3)
         self.typenet = 'meta'
+        self.sigmoid = nn.Sigmoid()
 
 
     def forward(self, x: torch.Tensor):
+        """
+        
+        :param x : metadata tensor
+        :return  : forward neural network pass
+        """
 
         x = F.selu(self.fc1(x))
         x = F.selu(self.fc2(x))
-        x = nn.Sigmoid(self.fc3(x))
+        x = self.sigmoid(self.fc3(x))
 
         return x
 
 class TabularCNNNetBasic(nn.Module):
+    """
+    Basic neural network class for residual maps and metadata. The output returns a sigmoid of size 3.
+    
+    Neural network structure :
+    
+    (metadata): 
+        (0): Linear(in_features=11, out_features=16, bias=True)
+        (1): Linear(in_features=16, out_features=8, bias=True)
+    
+    (conv_base): 
+        (0): Conv2d(1, 6, kernel_size=(5, 5), stride=(1, 1))
+        (1): MaxPool2d(kernel_size=2, stride=2)
+        (2): Conv2d(6, 16, kernel_size=(5, 5), stride=(1, 1))
+        (3): Linear(in_features=2704, out_features=120, bias=True)
+        (4): Linear(in_features=120, out_features=84, bias=True)
+    
+    (classifier): 
+        (0): Linear(in_features=92, out_features=60, bias=True)
+        (1): Linear(in_features=60, out_features=3, bias=True)
+        (2): Sigmoid()
+    """
     def __init__(self):
         super().__init__()
 
@@ -59,10 +120,17 @@ class TabularCNNNetBasic(nn.Module):
 
         self.fc1 = nn.Linear(8 + 84, 60)
         self.fc2 = nn.Linear(60, 3)
+        self.sigmoid = nn.Sigmoid()
         self.typenet = 'convXmeta'
         
 
     def forward(self, img: torch.Tensor, data: torch.Tensor):
+        """
+        
+        :param img  : image tensor
+        :param data : metadata tensor
+        :return     : forward neural network pass
+        """
 
         data = F.selu(self.fc1_data(data))
         data = F.selu(self.fc2_data(data))
@@ -75,7 +143,7 @@ class TabularCNNNetBasic(nn.Module):
 
         x = torch.cat((img, data), dim=1)
         x = F.relu(self.fc1(x))
-        x = nn.Sigmoid(self.fc2(x))
+        x = self.sigmoid(self.fc2(x))
 
         return x
         
