@@ -45,28 +45,28 @@ SPECIES:
             PARAMETERS:
                 theta_E:
                     DISTRIBUTION:
-                        NAME: uniform
+                        NAME: lognormal
                         PARAMETERS:
-                            minimum: 1
-                            maximum: 2
+                            mean: 0
+                            sigma: 0.1
                 gamma: 
                     DISTRIBUTION:
-                        NAME: uniform
+                        NAME: lognormal
                         PARAMETERS:
-                            minimum: 1.8
-                            maximum: 2.2
+                            mean: 0.7
+                            sigma: 0.1
                 e1: 
                     DISTRIBUTION:
-                        NAME: uniform
+                        NAME: normal
                         PARAMETERS:
-                            minimum: -0.18
-                            maximum: 0.18
+                            mean: 0
+                            std: 0.2
                 e2:
                     DISTRIBUTION:
-                        NAME: uniform
+                        NAME: normal
                         PARAMETERS:
-                            minimum: 0
-                            maximum: 0.18
+                            mean: 0
+                            std: 0.2
                 center_x: 0
                 center_y: 0 
 

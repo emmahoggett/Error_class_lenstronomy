@@ -56,7 +56,7 @@ class  ResidualDeepLens:
         random.seed(2)
         self.path_config_model = path_config_model
 
-    def build(self, errorID:int, path_data='data/dataSet/', exp_time:float = 5400., background_rms:float = .005):
+    def build(self, errorID:int, path_data:str='data/dataSet/', exp_time:float = 5400., background_rms:float = .005):
         """
         
         :param errorID        : int, error ID
@@ -115,5 +115,5 @@ class  ResidualDeepLens:
             
             metadata = pd.concat([metadata,metadata_temp])
         # Store the data set as a hdf5 file
-        store_hdf5(residuals, metadata, errorID)
+        store_hdf5(residuals, metadata, str(errorID), path_data)
 

@@ -5,7 +5,6 @@ import pandas as pd
 import h5py
 import torch
 from torch.utils.data import Dataset
-from sklearn.metrics import hamming_loss, accuracy_score, precision_score, recall_score, f1_score
 
 
 
@@ -104,91 +103,3 @@ class CombineDataset(Dataset):
 
         return  image, feats, label
 
-
-def calculate_metrics(pred, target):
-    """
-    Compute different metrics to estimate the general error of th neural network error.
-    
-    :param pred : predicted 
-    :param target : 
-    :return : dictionnary, dictionnary of different metrics such as:
-        - hamming          : compute average hamming loss
-        - sample/precision : compute precision score for each instance and find their average 
-        - samples/recall   : compute recall score for each instance and find their average 
-        - samples/f1       : compute f1-score for each instance and find their average 
-        - samples/accuracy : compute accuracy classification score for each instance and find their average 
-    """
-
-    return {'hamming': hamming_loss(target, pred),
-            'samples/precision': precision_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
-            'samples/recall': recall_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
-            'samples/f1': f1_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
-            'accuracy': accuracy_score(y_true = target, y_pred = pred)
-            }
-            
-            
-def train_net(loader, net, optimizer, criterion, epoch:int):
-    """
-    Function to train a basic neural network on a given dataset (loader)
-    
-    :param loader    : CombineDataset, contain the combined residuals, metadata and labels
-    :param net       : pytorch 2D convolutionnal neural network
-    :param optimizer : pytorch optimizer
-    :param criterion : pytorch loss function, in this problem a binary cross entropy must be used
-    :param epoch     : int, epoch number
-    :return          : pytorch 2D convolutionnal trained neural network
-    """
-    running_loss = 0.0
-    for i, data in enumerate(loader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-        inputs, meta_inputs,labels = data
-
-        # zero the parameter gradients
-        optimizer.zero_grad()
-
-
-        # forward + backward + optimize
-        if net.typenet == 'conv':
-            outputs = net(inputs)
-        elif net.typenet == 'meta':
-            outputs = net(meta_inputs)
-        else :
-            outputs = net(inputs, meta_inputs)
-
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-        # print statistics
-        running_loss += loss.item()
-        
-    return net
-                
-def test_net(loader,net):
-    """
-    Make predictions on a given data-set(loader) with a 2D convolutionnal trained neural network(net).
-    
-    :param loader : CombineDataset, contain the combined residuals, metadata and labels
-    :param net    : pytorch 2D convolutionnal neural network
-    :return       : mean accuracy over the test dataset 
-    """
-    accuracy = 0
-    iteration = 0
-    with torch.no_grad():
-        predictions = []
-        targets = []
-        for data in loader:
-            images, meta_img, labels = data
-            # forward + backward + optimize
-            if net.typenet == 'conv':
-                outputs = net(images)
-            elif net.typenet == 'meta':
-                outputs = net(meta_img)
-            else :
-                outputs = net(images, meta_img)
-
-            predictions.extend(outputs.cpu().numpy())
-            targets.extend(labels.cpu().numpy())
-        result = calculate_metrics(np.round(np.array(predictions)), np.array(targets))
-
-    return result['accuracy']

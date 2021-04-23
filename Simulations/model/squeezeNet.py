@@ -46,16 +46,12 @@ class Fire(nn.Module):
 
 class SqueezeNet(nn.Module):
 
-    def __init__(
-        self,
-        version: str = '1_0',
-        num_classes: int = 3
-    ) -> None:
+    def __init__( self, version: str = '1_0', in_channels: int = 1, num_classes: int = 3) -> None:
         super(SqueezeNet, self).__init__()
         self.num_classes = num_classes
         if version == '1_0':
             self.features = nn.Sequential(
-                nn.Conv2d(1, 96, kernel_size=7, stride=2),
+                nn.Conv2d(in_channels, 96, kernel_size=7, stride=2),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
                 Fire(96, 16, 64, 64),
@@ -117,17 +113,12 @@ class SqueezeNet(nn.Module):
         return torch.flatten(x, 1)
 
 
-def _squeezenet(version: str, pretrained: bool, progress: bool, **kwargs: Any) -> SqueezeNet:
-    model = SqueezeNet(version, **kwargs)
-    if pretrained:
-        arch = 'squeezenet' + version
-        state_dict = load_state_dict_from_url(model_urls[arch],
-                                              progress=progress)
-        model.load_state_dict(state_dict)
-    return model
+def _squeezenet(version: str, in_channels: int, num_classes: int , **kwargs: Any) -> SqueezeNet:
+    return SqueezeNet(version, in_channels=in_channels, num_classes= num_classes,  **kwargs)
+    
 
 
-def squeezenet1_0(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> SqueezeNet:
+def squeezenet1_0(in_channels: int=1, num_classes: int=3, **kwargs: Any) -> SqueezeNet:
     r"""SqueezeNet model architecture from the `"SqueezeNet: AlexNet-level
     accuracy with 50x fewer parameters and <0.5MB model size"
     <https://arxiv.org/abs/1602.07360>`_ paper.
@@ -135,10 +126,10 @@ def squeezenet1_0(pretrained: bool = False, progress: bool = True, **kwargs: Any
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _squeezenet('1_0', pretrained, progress, **kwargs)
+    return _squeezenet('1_0',in_channels,num_classes, **kwargs)
 
 
-def squeezenet1_1(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> SqueezeNet:
+def squeezenet1_1(in_channels: int=1, num_classes: int=3, **kwargs: Any) -> SqueezeNet:
     r"""SqueezeNet 1.1 model from the `official SqueezeNet repo
     <https://github.com/DeepScale/SqueezeNet/tree/master/SqueezeNet_v1.1>`_.
     SqueezeNet 1.1 has 2.4x less computation and slightly fewer parameters
@@ -147,6 +138,5 @@ def squeezenet1_1(pretrained: bool = False, progress: bool = True, **kwargs: Any
         pretrained (bool): If True, returns a model pre-trained on ImageNet
         progress (bool): If True, displays a progress bar of the download to stderr
     """
-    return _squeezenet('1_1', pretrained, progress, **kwargs)
-
+    return _squeezenet('1_1', in_channels,num_classes, **kwargs)
 

@@ -117,7 +117,7 @@ class  Residual:
                 sigma = np.sqrt(dataset_model.img_sim.Data.C_D_model(model = dataset_model.images[i][i_ch]))
                 residuals[k,i_ch,:,:] = (image_real-image_model)/sigma
                 
-            bool_mdimg = np.concatenate((bool_mdimg, np.array([1,0,0])))
+            bool_mdimg = np.concatenate((bool_mdimg, np.array([0,0])))
             metadata = pd.concat([metadata,dataset_model.metadata.take([i])])
             k = k+1
         
@@ -152,7 +152,7 @@ class  Residual:
             k = k+1
             
         # Add the labels for each model and store the dataset in .h5 file
-        metadata['class'] = np.reshape(bool_mdimg, (-1, 3)).tolist()
+        metadata['class'] = np.reshape(bool_mdimg, (-1, 2)).tolist()
         self.residuals = residuals; self.metadata = metadata
         ID_img = "E"+str(errorID)+"P"+str(int(per_error*100))+"R"+str(int(ratio*100))
         store_hdf5(residuals, metadata, ID_img, path = self.path_data)

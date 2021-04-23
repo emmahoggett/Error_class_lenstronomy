@@ -74,28 +74,28 @@ SPECIES:
                             maximum: 0.5
                 R_sersic: 
                     DISTRIBUTION:
-                        NAME: uniform
+                        NAME: lognormal
                         PARAMETERS:
-                            minimum: 0.1
-                            maximum: 0.4
+                            mean: -0.7
+                            sigma: 0.4
                 n_sersic:
                     DISTRIBUTION:
-                        NAME: uniform
+                        NAME: lognormal
                         PARAMETERS:
-                            minimum: 0.8
-                            maximum: 5
+                            mean: 0.7
+                            sigma: 0.4
                 e1: 
                     DISTRIBUTION:
-                        NAME: uniform
+                        NAME: normal
                         PARAMETERS:
-                            minimum: -0.18
-                            maximum: 0.18
+                            mean: 0
+                            std: 0.2
                 e2:
                     DISTRIBUTION:
-                        NAME: uniform
+                        NAME: normal
                         PARAMETERS:
-                            minimum: 0
-                            maximum: 0.18
+                            mean: 0
+                            std: 0.2
 
                 
 GEOMETRY:

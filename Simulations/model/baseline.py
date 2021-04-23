@@ -23,14 +23,14 @@ class CNNNetBasic(nn.Module):
         (2): Linear(in_features=84, out_features=3, bias=True)
         (3): Sigmoid()
     """
-    def __init__(self):
+    def __init__(self, input_size: int = 1, num_classes:int = 3):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 6, kernel_size=5)
+        self.conv1 = nn.Conv2d(input_size, 6, kernel_size=5)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
         self.conv2 = nn.Conv2d(6, 16, kernel_size=5)
         self.fc1 = nn.Linear(16 * 13 * 13, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 3)
+        self.fc3 = nn.Linear(84, num_classes)
         self.sigmoid = nn.Sigmoid()
         self.typenet = 'conv'
         
@@ -61,12 +61,12 @@ class TabularNetBasic(nn.Module):
         (2): Linear(in_features=8, out_features=3, bias=True)
         (3): Sigmoid()
     """
-    def __init__(self):
+    def __init__(self, meta_size: int = 11, num_classes:int = 2):
         super().__init__()
 
-        self.fc1 = nn.Linear(11, 16)
+        self.fc1 = nn.Linear(meta_size, 16)
         self.fc2 = nn.Linear(16, 8)
-        self.fc3 = nn.Linear(8, 3)
+        self.fc3 = nn.Linear(8, num_classes)
         self.typenet = 'meta'
         self.sigmoid = nn.Sigmoid()
 
@@ -106,20 +106,20 @@ class TabularCNNNetBasic(nn.Module):
         (1): Linear(in_features=60, out_features=3, bias=True)
         (2): Sigmoid()
     """
-    def __init__(self):
+    def __init__(self, meta_size: int = 11, img_size:int = 1, num_classes:int = 2):
         super().__init__()
 
-        self.fc1_data = nn.Linear(11, 16)
+        self.fc1_data = nn.Linear(meta_size, 16)
         self.fc2_data = nn.Linear(16, 8)
 
-        self.conv1_img = nn.Conv2d(1, 6, kernel_size=5)
+        self.conv1_img = nn.Conv2d(img_size, 6, kernel_size=5)
         self.pool_img = nn.MaxPool2d(kernel_size=2, stride=2)
         self.conv2_img = nn.Conv2d(6, 16, kernel_size=5)
         self.fc1_img = nn.Linear(16 * 13 * 13, 120)
         self.fc2_img = nn.Linear(120, 84)
 
         self.fc1 = nn.Linear(8 + 84, 60)
-        self.fc2 = nn.Linear(60, 3)
+        self.fc2 = nn.Linear(60, num_classes)
         self.sigmoid = nn.Sigmoid()
         self.typenet = 'convXmeta'
         
