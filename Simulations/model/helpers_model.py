@@ -17,17 +17,17 @@ from model.vgg16 import VGG16Residual
 from model.googLeNet import googlenet, GoogLeNet
 from model.squeezeNet import squeezenet1_1
 
-from sklearn.metrics import hamming_loss, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import hamming_loss, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
 
 class NeuralNet:
     def __init__(self, net:str, optimizer:str, nb_chn:int = 1, nb_classes:int = 2, meta_in:int = 11):
         self.net_name = net
         self.net = self.CNN_dict(net, nb_chn, nb_classes, meta_in)
-        self.final_net = self.net
         self.max_met = 0
         self.criterion = nn.BCELoss()
         self.optimizer = self.optimizers_dict(optimizer)
+        
     
     def train (self, loader_train, resize_tp:str = 'Padding'):
         self.resize_tp = resize_tp
@@ -57,7 +57,8 @@ class NeuralNet:
             self.optimizer.step()
             
             
-    def test (self, loader_test, epoch, metric:str = 'accuracy'):
+    def test (self, loader_test, epoch, metric:str = 'auc'):
+        self.metric = metric
         with torch.no_grad():
             predictions = []
             targets = []
@@ -82,40 +83,43 @@ class NeuralNet:
                 targets.extend(labels.cpu().numpy())
             result = self.calculate_metrics(np.round(np.array(predictions)), np.array(targets))
         self._update_(result[metric], epoch)
-            
         return result[metric]
+    
     
     def _update_(self, result, epoch):
         if result > self.max_met:
             self.max_met = result
-            self.final_net = self.net
+            self.save_path = "model/checkpoints/"+self.net_name + ".pt"
+            self.save_checkpoint(epoch)
             self.opti_epoch = epoch
-            print("epoch: {:.3f}, accuracy: {:.3f} ".format(epoch, result))
+            txt = "epoch: {:.3f}, "+self.metric+": {:.3f}" 
+            print(txt.format(epoch, result))
             
-        
         
     def optimizers_dict(self, optimizer:str):
         self.optimizers = {'SGD': optim.SGD(self.net.parameters(), lr=0.001),
                            'SGD/momentum': optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9),
-                           'Adam': optim.Adam(self.net.parameters())}
+                           'Adam': optim.Adam(self.net.parameters(), eps = 0.1)}
         return self.optimizers[optimizer]
+    
     
     def resize_dict(self, inputs, resize_tp):
         m = nn.ZeroPad2d(80)
         self.resize = {'Interpolate': F.interpolate(inputs, size=(224, 224), mode='bicubic', align_corners=False),
-                      'Padding': m(inputs)}
+                       'Padding': m(inputs)}
         return self.resize[resize_tp]
+    
     
     def CNN_dict(self, net:str, nb_chn, nb_classes, nb_meta):
         self.nets = {'BasicCNN': CNNNetBasic(nb_chn,nb_classes),'BasicTabular':  TabularNetBasic(meta_size = nb_meta, num_classes = nb_classes),
                      'BasicCNNTabular': TabularCNNNetBasic(meta_size = nb_meta, img_size = nb_chn, num_classes = nb_classes),
-                    'AlexNet': AlexNetResidual(nb_chn, nb_classes),
-                    'ResNet18': resnet18maps(nb_chn,nb_classes), 'VGG16': VGG16Residual(nb_chn, nb_classes),
-                    'DenseNet161': densenet161(input_sz = nb_chn, num_classes = nb_classes), 
-                    'GoogleNet': GoogLeNet(googlenet(True, True, None,224, dropout_rate=0.2, num_classes=nb_classes)),
-                    'SqueezeNet': squeezenet1_1(in_channels=nb_chn, num_classes=nb_classes)}
-        
+                     'AlexNet': AlexNetResidual(nb_chn, nb_classes),
+                     'ResNet18': resnet18maps(nb_chn,nb_classes), 'VGG16': VGG16Residual(nb_chn, nb_classes),
+                     'DenseNet161': densenet161(input_sz = nb_chn, num_classes = nb_classes), 
+                     'GoogleNet': GoogLeNet(googlenet(True, True, None,224, dropout_rate=0.2, num_classes=nb_classes)),
+                     'SqueezeNet': squeezenet1_1(in_channels=nb_chn, num_classes=nb_classes)}
         return self.nets[net]
+    
     
     def calculate_metrics(self, pred, target):
         """
@@ -125,15 +129,42 @@ class NeuralNet:
         :param target : true labels
         :return : dictionnary, dictionnary of different metrics such as:
             - hamming          : compute average hamming loss
-            - sample/precision : compute precision score for each instance and find their average 
-            - samples/recall   : compute recall score for each instance and find their average 
-            - samples/f1       : compute f1-score for each instance and find their average 
+            - precision        : compute precision score for each instance and find their average 
+            - recall           : compute recall score for each instance and find their average 
+            - f1               : compute f1-score for each instance and find their average 
+            - exactmatch       : compute exact match ratio, such that partially correct predictions are considered as false
             - accuracy         : compute accuracy classification score for each instance and find their average 
         """
+        
+        accuracy = 0
+        auc = 0
+        for i in range(0, pred.shape[1]):
+            accuracy = accuracy + accuracy_score(y_true = target[:,i], y_pred = pred[:,i])
+            auc = auc + roc_auc_score(target[:,i], pred[:,i], average = 'samples')
+            
 
         return {'hamming': hamming_loss(target, pred),
-                'samples/precision': precision_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
-                'samples/recall': recall_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
-                'samples/f1': f1_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
-                'accuracy': accuracy_score(y_true = target, y_pred = pred)
+                'precision': precision_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
+                'recall': recall_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
+                'f1': f1_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
+                'exactmatch': accuracy_score(y_true = target, y_pred = pred),
+                'accuracy' : accuracy/pred.shape[1],
+                'auc': auc/pred.shape[1]
                 }
+    
+    def save_checkpoint(self, epoch):
+        torch.save({
+            'model_state_dict': self.net.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'epoch': epoch
+        }, self.save_path)
+        
+
+    def load_checkpoint(self):
+        checkpoint = torch.load(self.save_path)
+        self.net.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch']
+
+        return epoch
+    
