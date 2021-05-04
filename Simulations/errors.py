@@ -67,7 +67,7 @@ class LensMassError():
         self.metadata = pd.DataFrame(data=self.data)
         self.metadata.columns =  ['MASS_PROFILE_theta_E', 'MASS_PROFILE_gamma', 'MASS_PROFILE_e1', 'MASS_PROFILE_e2']
         self.k_seed = 0
-        self.type_error = np.array([1,0])
+        self.type_error = 'lensmass'
         
     def get_kwargs(self, index:int):
         """
@@ -168,7 +168,7 @@ class SourceError():
         self.metadata.columns =  ['SOURCE_PROFILE_amp', 'SOURCE_PROFILE_R_sersic', 'SOURCE_PROFILE_n_sersic','SOURCE_PROFILE_center_x', 
                                 'SOURCE_PROFILE_center_y', 'SOURCE_PROFILE_e1', 'SOURCE_PROFILE_e2']
         self.k_seed = 0
-        self.type_error = np.array([0,1])
+        self.type_error = 'source'
 
     def get_kwargs(self, index:int):
         """

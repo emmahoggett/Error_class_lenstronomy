@@ -23,7 +23,7 @@ class CNNNetBasic(nn.Module):
         (2): Linear(in_features=84, out_features=3, bias=True)
         (3): Sigmoid()
     """
-    def __init__(self, input_size: int = 1, num_classes:int = 3):
+    def __init__(self, input_size: int = 1, num_classes:int = 3)-> None:
         super().__init__()
         self.conv1 = nn.Conv2d(input_size, 6, kernel_size=5)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -35,7 +35,7 @@ class CNNNetBasic(nn.Module):
         self.typenet = 'conv'
         
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         
         :param x : image tensor
@@ -61,8 +61,8 @@ class TabularNetBasic(nn.Module):
         (2): Linear(in_features=8, out_features=3, bias=True)
         (3): Sigmoid()
     """
-    def __init__(self, meta_size: int = 11, num_classes:int = 2):
-        super().__init__()
+    def __init__(self, meta_size: int = 11, num_classes:int = 2) -> None:
+        super(TabularNetBasic, self).__init__()
 
         self.fc1 = nn.Linear(meta_size, 16)
         self.fc2 = nn.Linear(16, 8)
@@ -71,7 +71,7 @@ class TabularNetBasic(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         
         :param x : metadata tensor
@@ -106,8 +106,8 @@ class TabularCNNNetBasic(nn.Module):
         (1): Linear(in_features=60, out_features=3, bias=True)
         (2): Sigmoid()
     """
-    def __init__(self, meta_size: int = 11, img_size:int = 1, num_classes:int = 2):
-        super().__init__()
+    def __init__(self, meta_size: int = 11, img_size:int = 1, num_classes:int = 2) -> None:
+        super(TabularCNNNetBasic, self).__init__()
 
         self.fc1_data = nn.Linear(meta_size, 16)
         self.fc2_data = nn.Linear(16, 8)
@@ -124,7 +124,7 @@ class TabularCNNNetBasic(nn.Module):
         self.typenet = 'convXmeta'
         
 
-    def forward(self, img: torch.Tensor, data: torch.Tensor):
+    def forward(self, img: torch.Tensor, data: torch.Tensor) -> torch.Tensor:
         """
         
         :param img  : image tensor

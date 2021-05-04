@@ -11,9 +11,9 @@ import torch.optim as optim
 
 from model.baseline import CNNNetBasic, TabularNetBasic, TabularCNNNetBasic
 from model.densenet import densenet161
-from model.alexnet import AlexNetResidual
+from model.alexnet import AlexNet
 from model.resnet18 import resnet18maps
-from model.vgg16 import VGG16Residual
+from model.vgg16 import VGG16
 from model.googLeNet import googlenet, GoogLeNet
 from model.squeezeNet import squeezenet1_1
 
@@ -27,15 +27,20 @@ class NeuralNet:
         self.max_met = 0
         self.criterion = nn.BCELoss()
         self.optimizer = self.optimizers_dict(optimizer)
+        self.epoch_metric = []
+        self.current_epoch = 0
+        self.save_path = "model/checkpoints/"+self.net_name + ".pt"
         
     
     def train (self, loader_train, resize_tp:str = 'Padding'):
         self.resize_tp = resize_tp
+        self.current_epoch = self.current_epoch + 1
         for i, data in enumerate(loader_train, 0):
             inputs, meta, labels = data
+            
             if self.net_name!='BasicCNN' and self.net_name!='BasicTabular' and  self.net_name!='BasicCNNTabular':
                 inputs = self.resize_dict(inputs, self.resize_tp)
-                
+            
             # zero the parameter gradients
             self.optimizer.zero_grad()
             
@@ -57,7 +62,7 @@ class NeuralNet:
             self.optimizer.step()
             
             
-    def test (self, loader_test, epoch, metric:str = 'auc'):
+    def test (self, loader_test, metric:str = 'auc'):
         self.metric = metric
         with torch.no_grad():
             predictions = []
@@ -82,18 +87,18 @@ class NeuralNet:
                 predictions.extend(outputs.cpu().numpy())
                 targets.extend(labels.cpu().numpy())
             result = self.calculate_metrics(np.round(np.array(predictions)), np.array(targets))
-        self._update_(result[metric], epoch)
+        self._update_(result[metric])
+        self.epoch_metric.append(result[metric])
         return result[metric]
     
     
-    def _update_(self, result, epoch):
+    def _update_(self, result):
         if result > self.max_met:
             self.max_met = result
-            self.save_path = "model/checkpoints/"+self.net_name + ".pt"
-            self.save_checkpoint(epoch)
-            self.opti_epoch = epoch
+            self.opti_epoch =  self.current_epoch
+            self.save_checkpoint()
             txt = "epoch: {:.3f}, "+self.metric+": {:.3f}" 
-            print(txt.format(epoch, result))
+            print(txt.format(self.current_epoch, result))
             
         
     def optimizers_dict(self, optimizer:str):
@@ -113,10 +118,10 @@ class NeuralNet:
     def CNN_dict(self, net:str, nb_chn, nb_classes, nb_meta):
         self.nets = {'BasicCNN': CNNNetBasic(nb_chn,nb_classes),'BasicTabular':  TabularNetBasic(meta_size = nb_meta, num_classes = nb_classes),
                      'BasicCNNTabular': TabularCNNNetBasic(meta_size = nb_meta, img_size = nb_chn, num_classes = nb_classes),
-                     'AlexNet': AlexNetResidual(nb_chn, nb_classes),
-                     'ResNet18': resnet18maps(nb_chn,nb_classes), 'VGG16': VGG16Residual(nb_chn, nb_classes),
+                     'AlexNet': AlexNet(nb_chn, nb_classes),
+                     'ResNet18': resnet18maps(nb_chn,nb_classes), 'VGG16': VGG16(nb_chn, nb_classes),
                      'DenseNet161': densenet161(input_sz = nb_chn, num_classes = nb_classes), 
-                     'GoogleNet': GoogLeNet(googlenet(True, True, None,224, dropout_rate=0.2, num_classes=nb_classes)),
+                     'GoogleNet': GoogLeNet(googlenet(True, True, None, 224, nb_chn, nb_classes)),
                      'SqueezeNet': squeezenet1_1(in_channels=nb_chn, num_classes=nb_classes)}
         return self.nets[net]
     
@@ -140,9 +145,7 @@ class NeuralNet:
         auc = 0
         for i in range(0, pred.shape[1]):
             accuracy = accuracy + accuracy_score(y_true = target[:,i], y_pred = pred[:,i])
-            auc = auc + roc_auc_score(target[:,i], pred[:,i], average = 'samples')
-            
-
+            auc = auc + roc_auc_score(target[:,i], pred[:,i], average = 'samples')  
         return {'hamming': hamming_loss(target, pred),
                 'precision': precision_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
                 'recall': recall_score(y_true = target, y_pred = pred, average = 'samples', zero_division = 1),
@@ -152,11 +155,13 @@ class NeuralNet:
                 'auc': auc/pred.shape[1]
                 }
     
-    def save_checkpoint(self, epoch):
+    def save_checkpoint(self):
         torch.save({
             'model_state_dict': self.net.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'epoch': epoch
+            'epoch': self.opti_epoch,
+            'metric': self.max_met,
+            'epoch/metric': np.array(self.epoch_metric)
         }, self.save_path)
         
 
@@ -164,7 +169,7 @@ class NeuralNet:
         checkpoint = torch.load(self.save_path)
         self.net.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        epoch = checkpoint['epoch']
-
-        return epoch
-    
+        self.opti_epoch  = checkpoint['epoch']
+        self.current_epoch = checkpoint['epoch']
+        self.max_met = checkpoint['metric']
+        self.epoch_metric = checkpoint['epoch/metric'].tolist()

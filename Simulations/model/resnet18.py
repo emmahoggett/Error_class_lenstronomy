@@ -197,8 +197,7 @@ class ResNetEncoder(nn.Module):
         for block in self.blocks:
             x = block(x)
         return x
-        
-######################################      Residual maps      ######################################
+    
         
 class ResnetDecoder(nn.Module):
     """

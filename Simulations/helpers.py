@@ -9,7 +9,8 @@ from torch.utils.data import Dataset
 
 
 def store_hdf5(images, labels, ID:str, path:str):
-    """ Stores an array of images and the labels to HDF5 files.
+    """ 
+    Stores an array of images and the labels to HDF5 files.
     
         :param images   : np.array, residual maps (N, 1, 64, 64) to be stored
         :param labels   : pd.Dataframe, dataframe and labels (N, 11) to be stored
@@ -17,18 +18,18 @@ def store_hdf5(images, labels, ID:str, path:str):
         :param path     : string, path where the data is stored
     """
 
-    # Create a new HDF5 file
+    #create a new HDF5 file
     file = h5py.File(path+ID+"_lens.h5", "w")
 
-    # Create a dataset in the file
-    dataset = file.create_dataset( "images", np.shape(images), h5py.h5t.IEEE_F64BE, data=images
-    )
+    #create a dataset in the file
+    dataset = file.create_dataset( "images", np.shape(images), h5py.h5t.IEEE_F64BE, data=images)
     file.close()
 
     labels.to_hdf(path +ID+'_meta.h5', "table")
 
 def read_hdf5(ID_images:str, path):
-    """ Reads images and metadatas from HDF5.
+    """ 
+    Reads images and metadatas from HDF5.
     
         :param ID_images : string, image ID
         :return images   : np.array, residual maps (N, 1, 64, 64) to be read
@@ -36,7 +37,7 @@ def read_hdf5(ID_images:str, path):
     """
     images, labels = [], []
 
-    # Open the HDF5 file
+    #open the HDF5 file
     file = h5py.File(path +ID_images+"_lens.h5", "r")
 
     images = np.array(file["/images"]).astype("float64")
@@ -54,7 +55,7 @@ class CombineDataset(Dataset):
     
     """
 
-    def __init__(self, frame, id_col, label_name:str, image:str, nb_channel:int = 1):
+    def __init__(self, frame, id_col, label_name:str, image:str, normalize:bool = True, nb_channel:int = 1):
         """
         
         :param frame      : pd.DataFrame, frame with the tabular data.
@@ -66,8 +67,12 @@ class CombineDataset(Dataset):
         self.frame = frame
         self.id_col = id_col
         self.label_name = label_name
-        self.image = image
         self.nb_channel = nb_channel
+        
+        #normalize image along channels
+        if normalize:
+            image = (image -image.mean(axis=(0,2,3), keepdims = True))/(image.std(axis=(0,2,3), keepdims = True))
+        self.image = image
         
     def __len__(self):
         """
@@ -97,7 +102,7 @@ class CombineDataset(Dataset):
         feats = torch.from_numpy(feats.astype(np.float32))
        
         
-        #get label
+        #get labels
         label = np.array(self.frame[self.label_name].iloc[idx])
         label = torch.from_numpy(label.astype(np.float32))
 

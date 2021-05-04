@@ -3,40 +3,38 @@ import torch.nn as nn
 import torch.nn.init as init
 from typing import Any
 
-try:
-    from torch.hub import load_state_dict_from_url
-except ImportError:
-    from torch.utils.model_zoo import load_url as load_state_dict_from_url
 
-__all__ = ['SqueezeNet', 'squeezenet1_0', 'squeezenet1_1']
+__all__ = ['SqueezeNet', 'squeezenet1_0', 'squeezenet1_1', 'squeezenet_custom']
 
-model_urls = {
-    'squeezenet1_0': 'https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth',
-    'squeezenet1_1': 'https://download.pytorch.org/models/squeezenet1_1-b8a52dc0.pth',
-}
 
 
 class Fire(nn.Module):
 
-    def __init__(
-        self,
-        inplanes: int,
-        squeeze_planes: int,
-        expand1x1_planes: int,
-        expand3x3_planes: int
-    ) -> None:
+    def __init__( self, inplanes: int, squeeze_planes: int, expand1x1_planes: int, expand3x3_planes: int) -> None:
+        """
+        
+        :param inplanes         : int, input number of channels
+        :param squeeze_planes   : int, 
+        :param expand1x1_planes : int,
+        :param expand3x3_planes : int, 
+        """
+        
+        
         super(Fire, self).__init__()
         self.inplanes = inplanes
         self.squeeze = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1)
         self.squeeze_activation = nn.ReLU(inplace=True)
-        self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes,
-                                   kernel_size=1)
+        self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes, kernel_size=1)
         self.expand1x1_activation = nn.ReLU(inplace=True)
-        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes,
-                                   kernel_size=3, padding=1)
+        self.expand3x3 = nn.Conv2d(squeeze_planes, expand3x3_planes, kernel_size=3, padding=1)
         self.expand3x3_activation = nn.ReLU(inplace=True)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        
+        :param x : 2D tensor
+        :return  : forward neural network pass
+        """
         x = self.squeeze_activation(self.squeeze(x))
         return torch.cat([
             self.expand1x1_activation(self.expand1x1(x)),
@@ -67,7 +65,7 @@ class SqueezeNet(nn.Module):
             )
         elif version == '1_1':
             self.features = nn.Sequential(
-                nn.Conv2d(1, 64, kernel_size=3, stride=2),
+                nn.Conv2d(in_channels, 64, kernel_size=3, stride=2),
                 nn.ReLU(inplace=True),
                 nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
                 Fire(64, 16, 64, 64),
@@ -81,12 +79,26 @@ class SqueezeNet(nn.Module):
                 Fire(384, 64, 256, 256),
                 Fire(512, 64, 256, 256),
             )
+        elif version == 'custom':
+            self.features = nn.Sequential(
+                nn.Conv2d(in_channels, 64, kernel_size=5, stride=1),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=6, stride=1, ceil_mode=True),
+                Fire(64, 16, 64, 64),
+                Fire(128, 16, 64, 64),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+                Fire(128, 32, 128, 128),
+                Fire(256, 32, 128, 128),
+                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+                Fire(256, 48, 192, 192),
+                Fire(384, 48, 192, 192),
+                Fire(384, 64, 256, 256),
+                Fire(512, 64, 256, 256),
+            )
+            
         else:
-            # FIXME: Is this needed? SqueezeNet should only be called from the
-            # FIXME: squeezenet1_x() functions
-            # FIXME: This checking is not done for the other models
             raise ValueError("Unsupported SqueezeNet version {version}:"
-                             "1_0 or 1_1 expected".format(version=version))
+                             "1_0, 1_1 or custom expected".format(version=version))
 
         # Final convolution is initialized differently from the rest
         final_conv = nn.Conv2d(512, self.num_classes, kernel_size=1)
@@ -139,4 +151,7 @@ def squeezenet1_1(in_channels: int=1, num_classes: int=3, **kwargs: Any) -> Sque
         progress (bool): If True, displays a progress bar of the download to stderr
     """
     return _squeezenet('1_1', in_channels,num_classes, **kwargs)
+
+def squeezenetcustom(in_channels: int=1, num_classes: int=3, **kwargs: Any) -> SqueezeNet:
+    return _squeezenet('custom', in_channels,num_classes, **kwargs)
 
