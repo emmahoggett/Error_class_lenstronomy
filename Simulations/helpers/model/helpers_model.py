@@ -29,7 +29,7 @@ class NeuralNet:
         self.optimizer = self.optimizers_dict(optimizer)
         self.epoch_metric = []
         self.current_epoch = 0
-        self.save_path = "data/model/checkpoints/"+self.net_name + ".pt"
+        self.save_path = "data/model/checkpoints/"+self.net_name
         
     
     def train (self, loader_train, resize_tp:str = 'Padding'):
@@ -63,7 +63,7 @@ class NeuralNet:
             self.optimizer.step()
             
             
-    def test (self, loader_test, metric:str = 'auc'):
+    def test (self, loader_test, metric:str = 'auc', verbose:bool = True):
         self.metric = metric
         with torch.no_grad():
             predictions = []
@@ -88,24 +88,26 @@ class NeuralNet:
                 predictions.extend(outputs.cpu().numpy())
                 targets.extend(labels.cpu().numpy())
             result = self.calculate_metrics(np.round(np.array(predictions)), np.array(targets))
-        self._update_(result[metric])
+        self._update_(result[metric], verbose)
         self.epoch_metric.append(result[metric])
         return result[metric]
     
     
-    def _update_(self, result):
+    def _update_(self, result, verbose):
+        self.save_checkpoint('_current')
         if result > self.max_met:
             self.max_met = result
             self.opti_epoch =  self.current_epoch
-            self.save_checkpoint()
-            txt = "epoch: {:.3f}, "+self.metric+": {:.3f}" 
-            print(txt.format(self.current_epoch, result))
+            self.save_checkpoint('_optimal')
+            if verbose:
+                txt = "epoch: {:.3f}, "+self.metric+": {:.3f}" 
+                print(txt.format(self.current_epoch, result))
             
         
     def optimizers_dict(self, optimizer:str):
         self.optimizers = {'SGD': optim.SGD(self.net.parameters(), lr=0.001),
                            'SGD/momentum': optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9),
-                           'Adam': optim.Adam(self.net.parameters(), eps = 0.1)}
+                           'Adam': optim.Adam(self.net.parameters(), eps = 0.07)}
         return self.optimizers[optimizer]
     
     
@@ -156,18 +158,26 @@ class NeuralNet:
                 'auc': auc/pred.shape[1]
                 }
     
-    def save_checkpoint(self):
+    def save_checkpoint(self, name):
+        """
+        
+        Save a checkpoint file for the 
+        """
         torch.save({
             'model_state_dict': self.net.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'epoch': self.opti_epoch,
+            'epoch': self.current_epoch,
             'metric': self.max_met,
             'epoch/metric': np.array(self.epoch_metric)
-        }, self.save_path)
+        }, self.save_path + name + ".pt")
         
 
-    def load_checkpoint(self):
-        checkpoint = torch.load(self.save_path)
+    def load_checkpoint(self, name):
+        """
+        
+        Load a checkpoint for a given neural network.
+        """
+        checkpoint = torch.load(self.save_path + name + ".pt")
         self.net.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.opti_epoch  = checkpoint['epoch']

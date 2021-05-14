@@ -6,7 +6,7 @@ import collections
 import ssl
 
 import torch.utils.model_zoo as model_zoo
-
+torch.manual_seed(0)
 
 class GoogLeNet(nn.Module):
     """

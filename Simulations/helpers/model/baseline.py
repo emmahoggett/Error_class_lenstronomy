@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+torch.manual_seed(0)
 
 
 
@@ -24,6 +25,11 @@ class CNNNetBasic(nn.Module):
         (3): Sigmoid()
     """
     def __init__(self, input_size: int = 1, num_classes:int = 3)-> None:
+        """
+        
+        :param input_size  : image channel size
+        :param num_classes : number of output classes
+        """
         super().__init__()
         self.conv1 = nn.Conv2d(input_size, 6, kernel_size=5)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
@@ -62,6 +68,11 @@ class TabularNetBasic(nn.Module):
         (3): Sigmoid()
     """
     def __init__(self, meta_size: int, num_classes:int = 2) -> None:
+        """
+        
+        :param meta_size   : metadata parameters size
+        :param num_classes : number of output classes
+        """
         super(TabularNetBasic, self).__init__()
 
         self.fc1 = nn.Linear(meta_size, 16)
@@ -107,6 +118,13 @@ class TabularCNNNetBasic(nn.Module):
         (2): Sigmoid()
     """
     def __init__(self, meta_size: int = 11, img_size:int = 1, num_classes:int = 2) -> None:
+        """
+        
+        :param meta_size   : metadata parameters size
+        :param img_size    : image channel size
+        :param num_classes : number of output classes
+        """
+
         super(TabularCNNNetBasic, self).__init__()
 
         self.fc1_data = nn.Linear(meta_size, 16)

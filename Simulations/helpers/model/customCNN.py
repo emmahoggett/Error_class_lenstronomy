@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+torch.manual_seed(0)
 
 class CustomAlexNet(nn.Module):
     def __init__(self, input_size: int, num_classes:int):

@@ -6,7 +6,7 @@ import h5py
 
 
 
-def store_hdf5(images, labels, ID:str, path:str):
+def store_hdf5(images, labels, ID:str, path:str = "data/dataset/"):
     """ 
     Stores an array of images and the labels to HDF5 files.
     
@@ -25,7 +25,7 @@ def store_hdf5(images, labels, ID:str, path:str):
 
     labels.to_hdf(path +ID+'_meta.h5', "table")
 
-def read_hdf5(ID_images:str, path):
+def read_hdf5(ID_images:str, path:str = "data/dataset/"):
     """ 
     Reads images and metadatas from HDF5.
     

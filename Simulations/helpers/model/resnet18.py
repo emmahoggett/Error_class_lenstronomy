@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from functools import partial
+torch.manual_seed(0)
 
 class Conv2dAuto(nn.Conv2d):
     """
