@@ -10,10 +10,10 @@ def store_hdf5(images, labels, ID:str, path:str = "data/dataset/"):
     """ 
     Stores an array of images and the labels to HDF5 files.
     
-    :param images   : np.array, residual maps (N, 1, 64, 64) to be stored
-    :param labels   : pd.Dataframe, dataframe and labels (N, 11) to be stored
+    :param images   : np.array(N, 1, 64, 64), residual maps to be stored
+    :param labels   : pd.Dataframe(N, 11), dataframe and labels to be stored
     :param ID       : string, ID of the file
-    :param path     : string, path where the data is stored
+    :param path     : string, path where the data is stored - default : path = "data/dataset/"
     """
 
     #create a new HDF5 file
@@ -24,12 +24,15 @@ def store_hdf5(images, labels, ID:str, path:str = "data/dataset/"):
     file.close()
 
     labels.to_hdf(path +ID+'_meta.h5', "table")
+    
+    
 
 def read_hdf5(ID_images:str, path:str = "data/dataset/"):
     """ 
     Reads images and metadatas from HDF5.
     
     :param ID_images : string, image ID
+    :param path      : string, path of the dataset - default : path = "data/dataset/"
     :return images   : np.array, residual maps (N, 1, 64, 64) to be read
     :return labels   : pd.Dataframe, dataframe and labels (N, 11) to be read
     """

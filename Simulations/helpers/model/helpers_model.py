@@ -1,7 +1,7 @@
-import matplotlib.pyplot as plt
+# this file contains the class that handle all neural networks and methods to train and test the performance
+
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
 import torch
 import torch.nn as nn
@@ -10,10 +10,10 @@ import torch.optim as optim
 
 
 from helpers.model.baseline import CNNNetBasic, TabularNetBasic, TabularCNNNetBasic
-from helpers.model.densenet import densenet161
+from helpers.model.densenet import densenet161, densenet121
 from helpers.model.alexnet import AlexNet
 from helpers.model.resnet18 import resnet18maps
-from helpers.model.vgg16 import VGG16
+from helpers.model.vgg import vgg11_bn, vgg16_bn
 from helpers.model.googLeNet import googlenet, GoogLeNet
 from helpers.model.squeezeNet import squeezenet1_1
 
@@ -21,20 +21,42 @@ from sklearn.metrics import hamming_loss, accuracy_score, precision_score, recal
 
 
 class NeuralNet:
-    def __init__(self, net:str, optimizer:str, nb_chn:int = 1, nb_classes:int = 2, meta_in:int = 11):
+    """
+    Class that contain all neural networks and methods to train and test the performance.
+    The model is saved after each test with the neural network performance, while the optimal training is saved
+    when performance are improved in the folder "data/model/checkpoints/".
+    Thus, pickle files have the following structure :
+        - Optimal training : [Net name]_optimal.pt
+        - Current training : [Net name]_current.pt
+    
+    """
+    def __init__(self, net:str, optimizer:str, int_channels:int = 1, out_channels:int = 2, meta_channels:int = 11):
+        """
+        
+        :param net           : str, neural neutwork name
+        :param optimizer     : str, optimizer's name
+        :param in_channels   : int, image channel size - default : in_channels = 1
+        :param out_channels  : int, number of output classes - default : out_channels = 2
+        :param meta_channels : int, metadata parameters size - default : meta_channels = 11
+        """
         self.net_name = net
-        self.net = self.CNN_dict(net, nb_chn, nb_classes, meta_in)
+        self.net = self.CNN_dict(net, int_channels, out_channels, meta_channels)
         self.max_met = 0
+        self.current_epoch  = 0
         self.criterion = nn.BCELoss()
         self.optimizer = self.optimizers_dict(optimizer)
         self.epoch_metric = []
-        self.current_epoch = 0
         self.save_path = "data/model/checkpoints/"+self.net_name
         
     
-    def train (self, loader_train, resize_tp:str = 'Padding'):
+    def train (self, loader_train, resize_tp:str = 'Padding')->None:
+        """
+        
+        :param loader_train : DataLoader, training set with images (1,64,64), metadata and labels.
+        :param resize_tp    : str, resizing method name - default : resize_tp = 'Padding'
+        """
         self.resize_tp = resize_tp
-        self.current_epoch = self.current_epoch + 1
+        self.current_epoch +=1
         for i, data in enumerate(loader_train, 0):
             inputs, meta, labels = data
             
@@ -63,18 +85,25 @@ class NeuralNet:
             self.optimizer.step()
             
             
-    def test (self, loader_test, metric:str = 'auc', verbose:bool = True):
+    def test (self, loader_test, metric:str = 'auc', verbose:bool = True)->float:
+        """
+        
+        :param loader_test : DataLoader, test set with images (1,64,64), metadata and labels.
+        :param metric      : str, metric name that optimize our neural network
+        :param verbose     : bool, show the epoch and performance improvements if true
+        :return            : float, current performance of the neural network for the given metric
+        """
         self.metric = metric
+        
         with torch.no_grad():
             predictions = []
             targets = []
             for data in loader_test:
                 images, meta, labels = data
-                
+                # resizing
                 if self.net_name!='BasicCNN' and self.net_name!='BasicTabular' and  self.net_name!='BasicCNNTabular':
                     images = self.resize_dict(images, self.resize_tp)
-                    
-                    
+                # predictions
                 if self.net_name=='BasicTabular':
                     outputs = self.net(meta)
                 elif self.net_name=='BasicCNNTabular':
@@ -84,58 +113,100 @@ class NeuralNet:
                     outputs = (outputs + aux_1 + aux_2)/3
                 else:
                     outputs = self.net(images)
-                
                 predictions.extend(outputs.cpu().numpy())
                 targets.extend(labels.cpu().numpy())
             result = self.calculate_metrics(np.round(np.array(predictions)), np.array(targets))
-        self._update_(result[metric], verbose)
         self.epoch_metric.append(result[metric])
+        
+        # update section
+        if len(self.epoch_metric)==1 and self.metric == 'hamming':
+            self.max_met = 1
+        
+        self._update_(result[metric], verbose)
         return result[metric]
     
     
-    def _update_(self, result, verbose):
+    def _update_(self, result:float, verbose:bool)->None:
+        """
+        
+        :param result  : float, current performance of the neural network for the given metric
+        :param verbose : bool, show the epoch and performance improvements if true
+        """
+        
         self.save_checkpoint('_current')
-        if result > self.max_met:
+        bool_ham = self.metric == 'hamming'
+        if result > self.max_met and self.metric != 'hamming':
             self.max_met = result
-            self.opti_epoch =  self.current_epoch
+            self.save_checkpoint('_optimal')
+            if verbose:
+                txt = "epoch: {:.3f}, "+self.metric+": {:.3f}" 
+                print(txt.format(self.current_epoch, result))
+                
+        elif self.metric == 'hamming' and result < self.max_met:
+            self.max_met = result
             self.save_checkpoint('_optimal')
             if verbose:
                 txt = "epoch: {:.3f}, "+self.metric+": {:.3f}" 
                 print(txt.format(self.current_epoch, result))
             
+            
         
     def optimizers_dict(self, optimizer:str):
-        self.optimizers = {'SGD': optim.SGD(self.net.parameters(), lr=0.001),
-                           'SGD/momentum': optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9),
-                           'Adam': optim.Adam(self.net.parameters(), eps = 0.07)}
-        return self.optimizers[optimizer]
+        """
+        
+        :param optimizer : str, optimizer's name
+        :return          : optim, neural network optimizer
+        """
+        optimizers = {'SGD': optim.SGD(self.net.parameters(), lr=0.001),
+                      'SGD/momentum': optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9),
+                      'Adam': optim.Adam(self.net.parameters(), eps = 0.07)}
+        return optimizers[optimizer]
     
     
-    def resize_dict(self, inputs, resize_tp):
+    def resize_dict(self, inputs:torch.Tensor, resize_tp:str)->torch.Tensor:
+        """
+        
+        :param inputs    : torch.Tensor, image of size (1,64,64)
+        :param resize_tp : str, resize method's name
+        :return          : torch.Tensor, resized image of size (1,224,224)
+        """
         m = nn.ZeroPad2d(80)
-        self.resize = {'Interpolate': F.interpolate(inputs, size=(224, 224), mode='bicubic', align_corners=False),
-                       'Padding': m(inputs)}
-        return self.resize[resize_tp]
+        interp = F.interpolate(inputs, size=(224, 224), mode='bicubic', align_corners=False)
+        resize = {'Interpolate': interp,
+                  'Padding': m(inputs)}
+        return resize[resize_tp]
     
     
-    def CNN_dict(self, net:str, nb_chn, nb_classes, nb_meta):
-        self.nets = {'BasicCNN': CNNNetBasic(nb_chn,nb_classes),'BasicTabular':  TabularNetBasic(meta_size = nb_meta, num_classes = nb_classes),
-                     'BasicCNNTabular': TabularCNNNetBasic(meta_size = nb_meta, img_size = nb_chn, num_classes = nb_classes),
-                     'AlexNet': AlexNet(nb_chn, nb_classes),
-                     'ResNet18': resnet18maps(nb_chn,nb_classes), 'VGG16': VGG16(nb_chn, nb_classes),
-                     'DenseNet161': densenet161(input_sz = nb_chn, num_classes = nb_classes), 
-                     'GoogleNet': GoogLeNet(googlenet(True, True, None, 224, nb_chn, nb_classes)),
-                     'SqueezeNet': squeezenet1_1(in_channels=nb_chn, num_classes=nb_classes)}
-        return self.nets[net]
+    def CNN_dict(self, net:str, in_channels:int, out_channels:int, meta_channels:int):
+        """
+        
+        :param net           : str, neural neutwork name
+        :param in_channels   : int, image channel size 
+        :param out_channels  : int, number of output classes
+        :param meta_channels : int, metadata parameters size
+        :return              : nn.Module, neural network model
+        """
+        nets = {'BasicCNN': CNNNetBasic(in_channels,out_channels),
+                'BasicTabular':  TabularNetBasic(meta_channels = meta_channels, out_channels = out_channels),
+                'BasicCNNTabular': TabularCNNNetBasic(meta_channels = meta_channels, in_channels = in_channels, out_channels = out_channels),
+                'AlexNet': AlexNet(in_channels, out_channels),
+                'ResNet18': resnet18(in_channels,out_channels), 
+                'VGG11': vgg11_bn(in_channels = in_channels, out_channels = out_channels),
+                'VGG16': vgg16_bn(in_channels = in_channels, out_channels = out_channels),
+                'DenseNet161': densenet161(in_channels = in_channels, out_channels = out_channels),
+                'DenseNet121': densenet121(in_channels = in_channels, out_channels = out_channels),
+                'GoogleNet': GoogLeNet(googlenet(True, True, None, 224, in_channels, out_channels)),
+                'SqueezeNet': squeezenet1_1(in_channels = in_channels, out_channels = out_channels)}
+        return nets[net]
     
     
-    def calculate_metrics(self, pred, target):
+    def calculate_metrics(self, pred:np.array, target:np.array):
         """
         Compute different metrics to estimate the general error of th neural network error.
 
-        :param pred : predicted output
-        :param target : true labels
-        :return : dictionnary, dictionnary of different metrics such as:
+        :param pred   : np.array, predicted output
+        :param target : np.array, true labels
+        :return       : dictionnary, dictionnary of different metrics such as:
             - hamming          : compute average hamming loss
             - precision        : compute precision score for each instance and find their average 
             - recall           : compute recall score for each instance and find their average 
@@ -158,10 +229,12 @@ class NeuralNet:
                 'auc': auc/pred.shape[1]
                 }
     
-    def save_checkpoint(self, name):
+    def save_checkpoint(self, name:str)->None:
         """
         
-        Save a checkpoint file for the 
+        Save a checkpoint file with model, optimizer, maximum performance and performance over epoch.
+        
+        :param name : str, name of the saved file such that "data/model/checkpoints/[Net name][name].pt"
         """
         torch.save({
             'model_state_dict': self.net.state_dict(),
@@ -172,15 +245,17 @@ class NeuralNet:
         }, self.save_path + name + ".pt")
         
 
-    def load_checkpoint(self, name):
+    def load_checkpoint(self, name:str)->None:
         """
         
-        Load a checkpoint for a given neural network.
+        Load a checkpoint for a given neural network, with model, optimizer, maximum performance and performance over epoch.
+        
+        :param name : str, name of the loaded file such that "data/model/checkpoints/[Net name][name].pt"
         """
         checkpoint = torch.load(self.save_path + name + ".pt")
         self.net.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        self.opti_epoch  = checkpoint['epoch']
+        self.net.eval()
         self.current_epoch = checkpoint['epoch']
         self.max_met = checkpoint['metric']
         self.epoch_metric = checkpoint['epoch/metric'].tolist()

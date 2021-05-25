@@ -39,7 +39,19 @@ class LensDataset:
         :param seed       : random seed for the uniform distribution
         :param center_x   : coordinate center of the lens mass profile on the x-axis
         :param center_y   : coordinate center of the lens mass profile on the y-axis
-        :param param_range: 11x2 matrix, with specified range of the mass and source light profile
+        :param mass_range   : np.array (4,2), array that contain the distribution parameters of each configuration in the following order :
+                    - theta_E : Einstein radius(angle), log-normal distribution [mu,sigma]- default : N(0,0.1)
+                    - gamma   : Logarithmic slope of the power-law profile, log-normal distribution [mu,sigma]- default : N(0.7,0.1)
+                    - q       : Axis ratio, uniform distribution [a,b] - default : U(0.7,1)
+                    - phi     : Position angle, uniform distribution [a,b] - default : U(0,pi/2)
+        :param source_range : np.array (7,2), array that contain the distribution parameters of each source configurationin the following order :
+                - amp      : Surface brightness/amplitude value at the half light radius, uniform distribution [a,b] - default : U(20,24)
+                - R        : Semi-major axis half light radius, log-normal distribution [mu,sigma]- default : N(-0.7,0.4)
+                - n        : Sersic index, log-normal distribution [mu,sigma]- default : N(0.7,0.4)
+                - center_x : x-position of the source center, uniform distribution [a,b] - default : U(-0.5,0.5)
+                - center_y : y-position of the source center, uniform distribution [a,b] - default : U(-0.5,0.5)
+                - q        : Axis ratio, uniform distribution [a,b] - default : U(0.7,1)
+                - phi      : Position angle, uniform distribution [a,b] - default : U(0,pi/2)
         """
 
         #define the psf and the type of observation (here HST)
@@ -82,16 +94,16 @@ class  Residual:
     for the metadata.
     """
 
-    def build(self, size:int, ratio:float = 0.75, per_error = [0.007, 0.02, 0.005], num_label:int = 2, center_x:float = 0, center_y:float = 0,
+    def build(self, size:int, ratio:float = 0.75, per_error = [0.005, 0.015, 0.005], num_label:int = 2, center_x:float = 0, center_y:float = 0,
               mass_range = None, source_range = None, path_data:str = "data/dataset/"):
         """
         
         :param size         : int, size of the final data set
-        :param ratio        : float, ratio between true and false residuals maps
-        :param per_error    : float, percentage of error between observed data and the model
-        :param num_label    : int, number of labels
-        :param center_x     : float, x-position of the lens center - default : 0
-        :param center_y     : float, y-position of the lens center - default : 0
+        :param ratio        : float, ratio between true and false residuals maps - default : ratio = 0.75
+        :param per_error    : float, percentage of error between observed data and the model - default : per_error = [0.005, 0.015, 0.005]
+        :param num_label    : int, number of labels - default : num_label = 2
+        :param center_x     : float, x-position of the lens center - default : center_x = 0
+        :param center_y     : float, y-position of the lens center - default : center_y = 0
         :param mass_range   : np.array (4,2), array that contain the distribution parameters of each configuration in the following order :
                     - theta_E : Einstein radius(angle), log-normal distribution [mu,sigma]- default : N(0,0.1)
                     - gamma   : Logarithmic slope of the power-law profile, log-normal distribution [mu,sigma]- default : N(0.7,0.1)
@@ -105,7 +117,7 @@ class  Residual:
                 - center_y : y-position of the source center, uniform distribution [a,b] - default : U(-0.5,0.5)
                 - q        : Axis ratio, uniform distribution [a,b] - default : U(0.7,1)
                 - phi      : Position angle, uniform distribution [a,b] - default : U(0,pi/2)
-        :param path_data    : str, path where the binary file is saved - default : "data/dataSet/"
+        :param path_data    : str, path where the binary file is saved - default : path_data = "data/dataset/"
         """
         
         metadata = pd.DataFrame()
@@ -140,11 +152,11 @@ class  Residual:
                 kwargs_lens, kwargs_source, error =  dict_err[str(errorID)]
                 img_test = dataset_model.img_sim.image(kwargs_lens, kwargs_source, kwargs_ps=None)
 
-                for i_ch in np.arange(0,self.channels):
-                    image_model = dataset_model.images[i][i_ch]
-                    image_real = img_test + dataset_model.image_config.noise_for_model(model = img_test)
-                    sigma = np.sqrt(dataset_model.img_sim.Data.C_D_model(model = img_test))
-                    residuals[k,i_ch,:,:] = (image_real-image_model)/sigma
+                image_model = dataset_model.images[i][0]
+                image_real = img_test + dataset_model.image_config.noise_for_model(model = img_test)
+                sigma = np.sqrt(dataset_model.img_sim.Data.C_D_model(model = img_test))
+                residuals[k,0,:,:] = (image_real-image_model)/sigma
+                
                 bool_mdimg.append(error)
                 rms_noise.append(sigma)
                 metadata = pd.concat([metadata,dataset_model.metadata.take([i])])
@@ -174,7 +186,7 @@ class  Residual:
         
         Note : To add additionnal error the error list and the kwargs error must be redefined.
         
-        :param dataset_model : LensDataset, object that contain all image configuration and images
+        :param dataset_model : lensdataset, object that contain all image configuration and images
         :param i             : int, index of the used image
         :return              : dictionnary, with every type of error combinations. One combination is a tuple with the parameters and an error set.
         """
@@ -213,10 +225,10 @@ class CombineDataset(Dataset):
     
     """
 
-    def __init__(self, frame, id_col, label_name:str, image:str, normalize:bool = False, nb_channel:int = 1):
+    def __init__(self, frame, id_col, label_name:str, image:str, normalize:bool = True, nb_channel:int = 1):
         """
         
-        :param frame      : pd.DataFrame, frame with the tabular data.
+        :param frame      : dataframe, frame with the tabular data.
         :param id_col     : string, name of the column that connects image to tabular data
         :param label_name : string, name of the column with the label to be predicted
         :param path_imgs  : string, path to the folder where the images are.
@@ -258,7 +270,6 @@ class CombineDataset(Dataset):
         feats = [feat for feat in self.frame.columns if feat not in [self.label_name,self.id_col]]
         feats  = np.array(self.frame[feats].iloc[idx])
         feats = torch.from_numpy(feats.astype(np.float32))
-       
         
         #get labels
         label = np.array(self.frame[self.label_name].iloc[idx])

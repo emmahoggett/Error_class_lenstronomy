@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from helpers.data_generation.file_management import read_hdf5
-from helpers.data_generation.error_generation import Residual, CombineDataset
+from helpers.data_generation.error_generation_chi2 import Residual, CombineDataset
 from helpers.model.helpers_model import NeuralNet
 
 import warnings
@@ -32,7 +32,7 @@ for ratio in ratio_array:
         res.build(size, ratio = ratio, per_error = percent*np.ones(3))
 
         str_ID =  "S"+str(size)+"R"+str(int(ratio*100))
-        [final_array, metadata] = read_hdf5(str_ID, path = "data/dataSet/")
+        [final_array, metadata] = read_hdf5(str_ID, path = "data/dataset/")
         metadata ['ID'] = np.arange(0,final_array.shape[0])
         metadata = metadata.drop(columns=['percent', 'index'])
         data_set = CombineDataset(metadata,'ID','class',final_array)
@@ -49,7 +49,7 @@ for ratio in ratio_array:
         for netname in neuralnet_name:
 
             test_accSGD = np.zeros(max_epoch)
-            netbasic = NeuralNet(netname, 'Adam')
+            netbasic = NeuralNet(netname, 'SGD/momentum')
             for epoch in range(max_epoch):
                 netbasic.train(loader_train)
                 res = netbasic.test(loader_test)

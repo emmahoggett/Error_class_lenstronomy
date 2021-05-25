@@ -92,24 +92,11 @@ class GoogLeNet(nn.Module):
         self.dropout = nn.Dropout(p=global_params.dropout_rate)
         self.fc = nn.Linear(1024, global_params.num_classes)
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, 0, 0.01)
-                nn.init.constant_(m.bias, 0)
-
-
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor)->torch.Tensor:
         """
         
-        :param x : tensor, image tensor
-        :return  : tensor, final tensor, and two auxiliary outputs
+        :param x : torch.Tensor, image tensor
+        :return  : torch.Tensor, final tensor, and two auxiliary outputs
         """
         # type: (Tensor) -> Tuple[Tensor, Optional[Tensor], Optional[Tensor]]
         # N x 3 x 224 x 224
@@ -167,7 +154,7 @@ class GoogLeNet(nn.Module):
         # N x 1000 (num_classes)
         return x, aux2, aux1
 
-    def extract_features(self, inputs : torch.Tensor):
+    def extract_features(self, inputs : torch.Tensor)-> torch.Tensor:
         """ Returns output of the final convolution layer """
         x = self.conv1(inputs)
         x = self.maxpool1(x)
@@ -232,7 +219,7 @@ class Inception(nn.Module):
     """
     __constants__ = ['branch2', 'branch3', 'branch4']
 
-    def __init__(self, in_channels:int, ch1x1:int, ch3x3red:int, ch3x3:int, ch5x5red:int, ch5x5:int, pool_proj:int, conv_block=None):
+    def __init__(self, in_channels:int, ch1x1:int, ch3x3red:int, ch3x3:int, ch5x5red:int, ch5x5:int, pool_proj:int, conv_block=None)->None:
         """
         
         :param in_channels : int, previous layer output size
@@ -268,7 +255,7 @@ class Inception(nn.Module):
     def _forward(self, x: torch.Tensor):
         """
         
-        :param x : tensor, 2D tensor input of the inception layer
+        :param x : torch.Tensor, 2D tensor input of the inception layer
         :return  : sequence, sequence of the four branch output's tensors
         """
         branch1 = self.branch1(x)
@@ -282,8 +269,8 @@ class Inception(nn.Module):
     def forward(self,  x: torch.Tensor):
         """
         
-        :param x : tensor, 2D tensor input of the inception layer
-        :return  : tensor, concatenation of the four branch of the inception layer.
+        :param x : torch.Tensor, 2D tensor input of the inception layer
+        :return  : torch.Tensor, concatenation of the four branch of the inception layer.
         """
         outputs = self._forward(x)
         return torch.cat(outputs, 1)
@@ -312,11 +299,12 @@ class InceptionAux(nn.Module):
             (2): Sigmoid()
     """
 
-    def __init__(self, in_channels:int, num_classes:int, conv_block=None):
+    def __init__(self, in_channels:int, out_channels:int, conv_block=None):
         """
         
         :param in_channels  : int, number of input channels
-        :param num_classes  : int, number of classes
+        :param out_channels : int, number of classes
+        :param conv_block   : 
         """
         
         super(InceptionAux, self).__init__()
@@ -325,12 +313,13 @@ class InceptionAux(nn.Module):
         self.conv = conv_block(in_channels, 128, kernel_size=1)
 
         self.fc1 = nn.Linear(2048, 1024)
-        self.fc2 = nn.Linear(1024, num_classes)
+        self.fc2 = nn.Linear(1024, out_channels)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor)->torch.Tensor:
         """
         
-        :param x : tensor, 2D tensor input of the inception layer
+        :param x : torch.Tensor, 2D tensor input of the inception layer
+        :return  : torch.Tensor
         """
         # aux1: N x 512 x 14 x 14, aux2: N x 528 x 14 x 14
         x = F.adaptive_avg_pool2d(x, (4, 4))
@@ -372,7 +361,7 @@ class BasicConv2d(nn.Module):
         self.conv = nn.Conv2d(in_channels, out_channels, bias=False, **kwargs)
         self.bn = nn.BatchNorm2d(out_channels, eps=0.001)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor)->torch.Tensor:
         """
         
         :param x  : tensor, 2D tensor
@@ -401,7 +390,7 @@ def googlenet(aux_logits, transform_input, blocks,
     :param blocks          : 
     :param image_size      : 
     :param num_channel     : 
-    :param dropout_rate    :
+    :param dropout_rate    : float, dropout rate
     :return                : tuple subclass, a tuple subclass named GlobalParams with parameters for the entire model (stem, all blocks, and head)
     """
 

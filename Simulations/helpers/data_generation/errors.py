@@ -150,7 +150,8 @@ class SourceError():
 
         self.size = size
         self.data = np.zeros((self.size,self.source_param.shape[0]))
-
+        
+        # compute parameters of measured image
         for i in np.arange(0,5):
             self.data[:,i] = np.random.uniform(self.source_param[i,0],self.source_param[i,1],self.size)
             
@@ -169,6 +170,7 @@ class SourceError():
         self.type_error = 'source'
         self.metadata_error = pd.DataFrame()
         
+        # compute error parameters
         for col_i in self.metadata.columns:
             self.metadata_error[col_i] = [ val + percent*abs(val)*np.random.choice([-1, 1]) for val in self.metadata[col_i]]
         self.metadata_error['SOURCE_PROFILE_center_x'] = self.metadata['SOURCE_PROFILE_center_x']
