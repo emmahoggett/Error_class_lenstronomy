@@ -195,7 +195,7 @@ class NeuralNet:
                 'VGG16': vgg16_bn(in_channels = in_channels, out_channels = out_channels),
                 'DenseNet161': densenet161(in_channels = in_channels, out_channels = out_channels),
                 'DenseNet121': densenet121(in_channels = in_channels, out_channels = out_channels),
-                'GoogleNet': GoogLeNet(googlenet(True, True, None, 224, in_channels, out_channels)),
+                'GoogleNet': GoogLeNet(googlenet(True, None, 224, in_channels, out_channels)),
                 'SqueezeNet': squeezenet1_1(in_channels = in_channels, out_channels = out_channels)}
         return nets[net]
     

@@ -1,3 +1,6 @@
+# this file contains the class for the googleNet neural network
+#          reference : pytorch - googleNet
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -45,7 +48,7 @@ class GoogLeNet(nn.Module):
     
     """
     
-    __constants__ = ['aux_logits', 'transform_input']
+    __constants__ = ['aux_logits']
 
     def __init__(self, global_params=None):
         """
@@ -62,7 +65,6 @@ class GoogLeNet(nn.Module):
         inception_aux_block = blocks[2]
 
         self.aux_logits = global_params.aux_logits
-        self.transform_input = global_params.transform_input
 
         self.conv1 = conv_block(global_params.num_channel, 64, kernel_size=7, stride=2, padding=3)
         self.maxpool1 = nn.MaxPool2d(3, stride=2, ceil_mode=True)
@@ -155,7 +157,10 @@ class GoogLeNet(nn.Module):
         return x, aux2, aux1
 
     def extract_features(self, inputs : torch.Tensor)-> torch.Tensor:
-        """ Returns output of the final convolution layer """
+        """ 
+        :param inputs : torch.Tensor, image tensor
+        :return       : torch.Tensor, output of the final convolution layer 
+        """
         x = self.conv1(inputs)
         x = self.maxpool1(x)
         x = self.conv2(x)
@@ -373,30 +378,29 @@ class BasicConv2d(nn.Module):
 
 # Parameters for the entire model (stem, all blocks, and head)
 GlobalParams = collections.namedtuple('GlobalParams', [
-    "num_classes", "aux_logits", "transform_input",
+    "num_classes", "aux_logits",
     "blocks", "dropout_rate", "image_size", "num_channel"
 ])
 
 # Change namedtuple defaults
 GlobalParams.__new__.__defaults__ = (None,) * len(GlobalParams._fields)
 
-def googlenet(aux_logits, transform_input, blocks,
-              image_size, num_channel, num_classes, dropout_rate=0.2):
+def googlenet(aux_logits:bool, blocks,
+              image_size:int, num_channel:int, num_classes:int, dropout_rate:float=0.2):
     """ 
     Creates a googlenet_pytorch model. 
     
-    :param aux_logits      :
-    :param transform_input :
-    :param blocks          : 
-    :param image_size      : 
-    :param num_channel     : 
+    :param aux_logits      : bool, if True the neural network return two auxiliary output
+    :param blocks          : list, list of nn.Module contained in the model. If set to None, blocks = [BasicConv2d, Inception, InceptionAux]
+    :param image_size      : int, image size
+    :param num_channel     : int, number of channels in the image
+    :param num_classes     : int, number of labels to classify
     :param dropout_rate    : float, dropout rate
     :return                : tuple subclass, a tuple subclass named GlobalParams with parameters for the entire model (stem, all blocks, and head)
     """
 
     global_params = GlobalParams(
         aux_logits=aux_logits,
-        transform_input=transform_input,
         blocks=blocks,
         image_size=image_size,
         dropout_rate=dropout_rate,

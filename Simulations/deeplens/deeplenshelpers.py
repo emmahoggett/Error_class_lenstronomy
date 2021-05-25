@@ -48,10 +48,10 @@ class  ResidualDeepLens:
     The file ID is coded as following : [error_number]_lens.h5 for the residual maps and [error_number]_meta.h5 for the metadata.
     """
 
-    def __init__(self, path_config_model):
+    def __init__(self, path_config_model:str):
         """
         
-        :param path_config_model : string, path of the configuration files for deeplens
+        :param path_config_model : str, path of the configuration files for deeplens
         """
         random.seed(2)
         self.path_config_model = path_config_model
@@ -62,7 +62,7 @@ class  ResidualDeepLens:
         :param errorID        : int, error ID
                 - 1 : lens mass error
                 - 2 : source error
-                - 3 : lens mass error and source error
+                - 3 : lens mass error and source errors
         :param path_data      : string, path where the data will be saved in a .h5 format - default : 'data/dataSet/'
         :param exp_time       : float, exposure time - default : 5400
         :param background_rms : float, background noise - default : .005
