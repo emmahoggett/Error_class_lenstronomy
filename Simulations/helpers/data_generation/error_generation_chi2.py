@@ -100,7 +100,7 @@ class  Residual:
     """
 
     def build(self, size:int, ratio:float = 0.75, per_error:np.array =np.array([0.005, 0.015, 0.005]), num_label:int = 2, 
-              center_x:float = 0, center_y:float = 0, mass_range = None, source_range = None, upp_bound:float = 6, path_data:str = "data/dataset/"):
+              center_x:float = 0, center_y:float = 0, mass_range = None, source_range = None, lower_mse:float = 1.2, upp_bound:float = 6, path_data:str = "data/dataset/"):
         """
         
         :param size         : int, size of the final data set
@@ -147,19 +147,17 @@ class  Residual:
             
             index_i = 0; iter_i = 0;
             if errorID == 0:
-                percent = 0; upper = 0; 
+                percent = 0; lower = -1; 
             else:
                 percent = per_error[errorID-1]
-                MSE_noise = [np.sum((residuals[ims,0,:,:])**2)/64**2 for ims in range(self.size)]
-                max_noise = [np.max(residuals[ii,0,:,:])**2 for ii in range(self.size)]
-                upper = mean([-10*log(a/b,10) for a, b in zip(MSE_noise, max_noise)])
+                lower = lower_mse
                 
             dataset_model = LensDataset(size = self.size, percent = percent, seed =  rng.integers(10000), center_x = center_x, 
                                         center_y = center_y, mass_range = mass_range, source_range= source_range)
             size_idx = self.size
             while iter_i < self.size:
                 new_img, error = self._build_image_(dataset_model, index_i, errorID)
-                if self._test_psnr_ (new_img[0,:,:], upp_bound, upper):
+                if self._test_mse_ (new_img[0,:,:], lower, upp_bound):
                     iter_i +=1; 
                     residuals[index_k,:,:,:] = new_img
                     bool_mdimg.append(error)
@@ -247,23 +245,22 @@ class  Residual:
 
         return dict_err
     
-    def _test_psnr_ (self, images:np.array, lower_psnr:float, upper_psnr:float):
+    def _test_mse_ (self, images:np.array, lower_mse:float, upper_amp:float):
         """
         
         :param images     : np.array(1,64,64), image that is tested
+        :param lower_mse  : float, in decibels, correspond to the lower bound of accepted noise
         :param upp_bound  : float, upper bound of amplitude to remove errors that are too obvious
-        :param lower_psnr : float, in decibels, correspond to the lower bound of accepted noise
         """
         mse = np.sum((images**2)/(images.shape[0]*images.shape[1]))
-        psnr = -10*log(mse/(np.max(images)**2),10)
-        bool_psnr = False
+        bool_mse = False
         # check if the error is larger then maps
-        if round(lower_psnr,1) < psnr:
+        if lower_mse < mse:
             # check if the error is not too obvious
-            if np.count_nonzero(np.absolute(images[:,:]) > upper_psnr)==0:
-                bool_psnr = True
+            if np.count_nonzero(np.absolute(images[:,:]) > upper_amp)==0:
+                bool_mse = True
             
-        return bool_psnr
+        return bool_mse
             
         
         
@@ -274,7 +271,7 @@ class CombineDataset(Dataset):
     
     """
 
-    def __init__(self, frame, id_col, label_name:str, image:str, normalize:bool = False, nb_channel:int = 1)->None:
+    def __init__(self, frame, id_col, label_name:str, image:str, normalize:bool = True, nb_channel:int = 1)->None:
         """
         
         :param frame      : dataframe, frame with the tabular data.

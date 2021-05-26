@@ -12,7 +12,7 @@ import torch.optim as optim
 from helpers.model.baseline import CNNNetBasic, TabularNetBasic, TabularCNNNetBasic
 from helpers.model.densenet import densenet161, densenet121
 from helpers.model.alexnet import AlexNet
-from helpers.model.resnet18 import resnet18maps
+from helpers.model.resnet18 import resnet18
 from helpers.model.vgg import vgg11_bn, vgg16_bn
 from helpers.model.googLeNet import googlenet, GoogLeNet
 from helpers.model.squeezeNet import squeezenet1_1

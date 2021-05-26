@@ -185,7 +185,7 @@ def _squeezenet(version: str, in_channels: int, out_channels: int , **kwargs: An
     :param out_channels : int, number of output labels
     :return             : SqueezeNet, squeeze net model
     """
-    return SqueezeNet(version, in_channels=in_channels, num_classes= num_classes,  **kwargs)
+    return SqueezeNet(version, in_channels=in_channels, num_classes= out_channels,  **kwargs)
     
 
 

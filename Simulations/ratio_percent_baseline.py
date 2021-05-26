@@ -35,7 +35,7 @@ for ratio in ratio_array:
         [final_array, metadata] = read_hdf5(str_ID, path = "data/dataset/")
         metadata ['ID'] = np.arange(0,final_array.shape[0])
         metadata = metadata.drop(columns=['percent', 'index'])
-        data_set = CombineDataset(metadata,'ID','class',final_array)
+        data_set = CombineDataset(metadata,'ID','class',final_array, True)
         
         data_train, data_test = train_test_split(data_set,train_size=0.9,random_state=42)
 
@@ -49,11 +49,11 @@ for ratio in ratio_array:
         for netname in neuralnet_name:
 
             test_accSGD = np.zeros(max_epoch)
-            netbasic = NeuralNet(netname, 'SGD/momentum')
+            netbasic = NeuralNet(netname, 'Adam')
             for epoch in range(max_epoch):
                 netbasic.train(loader_train)
                 res = netbasic.test(loader_test)
                 test_accSGD[epoch] = res
             
             txt = "Finished Training: "+ netname +" - epoch: {:.3f} - accuracy: {:.3f} \n" 
-            print(txt.format(netbasic.opti_epoch, netbasic.max_met))
+            print(txt.format(netbasic.epoch_metric.index(netbasic.max_met)+1, netbasic.max_met))
