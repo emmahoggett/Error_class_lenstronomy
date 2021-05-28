@@ -51,8 +51,8 @@ In this folder (`data/model/checkpoints/`), models are also saved under the name
 `deeplenstronomy` is a wrapper of `lenstronomy` that enable a large generation of simulated strong gravitational lens. To use it, a yaml file must be filled by the user with the desired strong lens configurations. `lenstronomy` and `fastell` must be installed. With this wrapper, the point-spread function(PSF) for an HST model 
 
 To use the deeplenstronomy wrapper, the following library are installed :
-*[deeplenstronomy](https://pypi.org/project/deeplenstronomy/): `pip install deeplenstronomy`
-*[PyYAML](https://pypi.org/project/PyYAML/): `pip install PyYAML`
+* [deeplenstronomy](https://pypi.org/project/deeplenstronomy/): `pip install deeplenstronomy`
+* [PyYAML](https://pypi.org/project/PyYAML/): `pip install PyYAML`
 
 `deeplenstronomy` is used in the folder `Simulations/deeplens/` and contain helpers to generate residual maps and a notebook `deeplens.ipynb` that contain some basic observations over the generated data.
 
