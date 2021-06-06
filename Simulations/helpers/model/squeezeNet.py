@@ -30,6 +30,7 @@ class Fire(nn.Module):
         (0): Conv2d(squeeze_planes, expand3x3_planes, kernel_size=3)
         (1): ReLU(inplace=True)
     """
+
     def __init__( self, inplanes: int, squeeze_planes: int, expand1x1_planes: int, expand3x3_planes: int) -> None:
         """
         
@@ -94,12 +95,12 @@ class SqueezeNet(nn.Module):
     
     """
 
-    def __init__( self, version: str = '1_0', in_channels: int = 1, num_classes: int = 2) -> None:
+    def __init__( self, version: str = '1_0', in_channels: int = 1, num_classes: int = 3) -> None:
         """
         
         :param version     : str, version of the SqueezeNet - default : version = '1_0'
         :param in_channels : int, number of input channels in the image - default : in_channels = 1
-        :param num_classes : int, number of output labels - default : num_classes = 2
+        :param num_classes
         """
         super(SqueezeNet, self).__init__()
         self.num_classes = num_classes
@@ -166,6 +167,15 @@ class SqueezeNet(nn.Module):
             nn.Sigmoid()
         )
 
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                if m is final_conv:
+                    init.normal_(m.weight, mean=0.0, std=0.01)
+                else:
+                    init.kaiming_uniform_(m.weight)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         
@@ -177,7 +187,7 @@ class SqueezeNet(nn.Module):
         return torch.flatten(x, 1)
 
 
-def _squeezenet(version: str, in_channels: int, out_channels: int , **kwargs: Any) -> SqueezeNet:
+def _squeezenet(version: str, in_channels: int, num_classes: int , **kwargs: Any) -> SqueezeNet:
     """
     
     :param version      : str, version of the SqueezeNet
@@ -185,11 +195,11 @@ def _squeezenet(version: str, in_channels: int, out_channels: int , **kwargs: An
     :param out_channels : int, number of output labels
     :return             : SqueezeNet, squeeze net model
     """
-    return SqueezeNet(version, in_channels=in_channels, num_classes= out_channels,  **kwargs)
+    return SqueezeNet(version, in_channels=in_channels, num_classes= num_classes,  **kwargs)
     
 
 
-def squeezenet1_0(in_channels: int=1, out_channels: int=2, **kwargs: Any) -> SqueezeNet:
+def squeezenet1_0(in_channels: int=1, num_classes: int=3, **kwargs: Any) -> SqueezeNet:
     """
     
     SqueezeNet model architecture from the `"SqueezeNet: AlexNet-level
@@ -200,10 +210,10 @@ def squeezenet1_0(in_channels: int=1, out_channels: int=2, **kwargs: Any) -> Squ
     :param out_channels : int, number of output labels - default : out_channels = 2
     :return             : SqueezeNet, SqueezeNet model for the version 1.0 
     """
-    return _squeezenet('1_0', in_channels, out_channels, **kwargs)
+    return _squeezenet('1_0',in_channels,num_classes, **kwargs)
 
 
-def squeezenet1_1(in_channels: int=1, out_channels: int=2, **kwargs: Any) -> SqueezeNet:
+def squeezenet1_1(in_channels: int=1, num_classes: int=3, **kwargs: Any) -> SqueezeNet:
     """
     
     SqueezeNet 1.1 model from the `official SqueezeNet repo
@@ -215,14 +225,14 @@ def squeezenet1_1(in_channels: int=1, out_channels: int=2, **kwargs: Any) -> Squ
     :param out_channels : int, number of output labels - default : out_channels = 2
     :return             : SqueezeNet, SqueezeNet model for the version 1.1
     """
-    return _squeezenet('1_1', in_channels, out_channels, **kwargs)
+    return _squeezenet('1_1', in_channels,num_classes, **kwargs)
 
-def squeezenetcustom(in_channels: int=1, out_channels: int=2, **kwargs: Any) -> SqueezeNet:
+def squeezenetcustom(in_channels: int=1, num_classes: int=3, **kwargs: Any) -> SqueezeNet:
     """
     
     :param in_channels  : int, number of input channels in the image - default : in_channels = 1
     :param out_channels : int, number of output labels - default : out_channels = 2
     :return             : SqueezeNet, SqueezeNet model for input image of (1,64,64)
     """
-    return _squeezenet('custom', in_channels, out_channels, **kwargs)
+    return _squeezenet('custom', in_channels, num_classes, **kwargs)
 

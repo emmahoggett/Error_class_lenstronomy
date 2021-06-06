@@ -14,8 +14,8 @@ warnings.filterwarnings('ignore')
 
 
 # Build the four classes 
-ratio_array = np.array([0.5, 0.75, 0.99])
-percent_array = np.array([0.01, 0.02, 0.05])
+ratio_array = np.array([0.75, 0.99])
+percent_array = np.array([0.01, 0.02])
 size = 6000
 
 batch_size = 50
@@ -49,7 +49,7 @@ for ratio in ratio_array:
         for netname in neuralnet_name:
 
             test_accSGD = np.zeros(max_epoch)
-            netbasic = NeuralNet(netname, 'Adam')
+            netbasic = NeuralNet(netname, 'SGD/momentum')
             for epoch in range(max_epoch):
                 netbasic.train(loader_train)
                 res = netbasic.test(loader_test)

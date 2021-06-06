@@ -183,11 +183,15 @@ class SourceError():
         :param index : int, index of the sample
         :return      : dictionnary, simulated kwargs with no error for the source light model
         """
-        kwargs_sersic = {'amp':  self.metadata['SOURCE_PROFILE_amp'][index], 'R_sersic': self.metadata['SOURCE_PROFILE_R_sersic'][index],
-                         'n_sersic':  self.metadata['SOURCE_PROFILE_n_sersic'][index], 'e1':  self.metadata['SOURCE_PROFILE_e1'][index], 
-                         'e2':  self.metadata['SOURCE_PROFILE_e2'][index], 'center_x': self.metadata['SOURCE_PROFILE_center_x'][index], 
+        kwargs_source = {'amp':  self.metadata['SOURCE_PROFILE_amp'][index], 
+                         'R_sersic': self.metadata['SOURCE_PROFILE_R_sersic'][index],
+                         'n_sersic':  self.metadata['SOURCE_PROFILE_n_sersic'][index], 
+                         'e1':  self.metadata['SOURCE_PROFILE_e1'][index], 
+                         'e2':  self.metadata['SOURCE_PROFILE_e2'][index], 
+                         'center_x': self.metadata['SOURCE_PROFILE_center_x'][index], 
                          'center_y':  self.metadata['SOURCE_PROFILE_center_y'][index]}
-        return [kwargs_sersic]
+            
+        return [kwargs_source]
     
     def add_error(self, index:int):
         """
@@ -196,12 +200,13 @@ class SourceError():
         :param percent : float, Percentage of relative error
         :return        : dictionnary, Error source dictionnary defined by the current index value with a relative error. The relative error is an uniform distribution U(-percent,percent).
         """
-        
-        kwargs_sersic = {'amp':  self.metadata_error['SOURCE_PROFILE_amp'][index], 
+
+        kwargs_source = {'amp':  self.metadata_error['SOURCE_PROFILE_amp'][index], 
                          'R_sersic': self.metadata_error['SOURCE_PROFILE_R_sersic'][index],
                          'n_sersic':  self.metadata_error['SOURCE_PROFILE_n_sersic'][index],
                          'e1':  self.metadata_error['SOURCE_PROFILE_e1'][index], 
                          'e2':  self.metadata_error['SOURCE_PROFILE_e2'][index], 
                          'center_x': self.metadata_error['SOURCE_PROFILE_center_x'][index], 
                          'center_y':  self.metadata_error['SOURCE_PROFILE_center_y'][index]}
-        return [kwargs_sersic]
+            
+        return [kwargs_source]

@@ -1,7 +1,7 @@
 DATASET:
     NAME: DeeplenstronomyDataset
     PARAMETERS:
-        SIZE: 10
+        SIZE: 100
         OUTDIR: dataSet
         SEED: 6
 

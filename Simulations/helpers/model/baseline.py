@@ -31,9 +31,9 @@ class CNNNetBasic(nn.Module):
         :param out_channels : int, number of output classes - default : out_channels = 2
         """
         super().__init__()
-        self.conv1 = nn.Conv2d(in_channels, 6, kernel_size=5)
+        self.conv1 = nn.Conv2d(in_channels, 6, kernel_size=5, bias = False)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=5)
+        self.conv2 = nn.Conv2d(6, 16, kernel_size=5, bias = False)
         self.fc1 = nn.Linear(16 * 13 * 13, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, out_channels)
@@ -130,9 +130,9 @@ class TabularCNNNetBasic(nn.Module):
         self.fc1_data = nn.Linear(meta_channels, 16)
         self.fc2_data = nn.Linear(16, 8)
 
-        self.conv1_img = nn.Conv2d(in_channels, 6, kernel_size=5)
+        self.conv1_img = nn.Conv2d(in_channels, 6, kernel_size=5, bias = False)
         self.pool_img = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.conv2_img = nn.Conv2d(6, 16, kernel_size=5)
+        self.conv2_img = nn.Conv2d(6, 16, kernel_size=5, bias = False)
         self.fc1_img = nn.Linear(16 * 13 * 13, 120)
         self.fc2_img = nn.Linear(120, 84)
 

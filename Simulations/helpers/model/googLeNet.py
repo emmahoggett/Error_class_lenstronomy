@@ -123,7 +123,7 @@ class GoogLeNet(nn.Module):
         # N x 512 x 14 x 14
         aux_defined = self.training and self.aux_logits
         if aux_defined:
-            aux1 = self.aux1(x)
+            aux1 = F.sigmoid(self.aux1(x))
         else:
             aux1 = None
 
@@ -134,7 +134,7 @@ class GoogLeNet(nn.Module):
         x = self.inception4d(x)
         # N x 528 x 14 x 14
         if aux_defined:
-            aux2 = self.aux2(x)
+            aux2 = F.sigmoid(self.aux2(x))
         else:
             aux2 = None
 
@@ -155,32 +155,6 @@ class GoogLeNet(nn.Module):
         x = F.sigmoid(self.fc(x))
         # N x 1000 (num_classes)
         return x, aux2, aux1
-
-    def extract_features(self, inputs : torch.Tensor)-> torch.Tensor:
-        """ 
-        :param inputs : torch.Tensor, image tensor
-        :return       : torch.Tensor, output of the final convolution layer 
-        """
-        x = self.conv1(inputs)
-        x = self.maxpool1(x)
-        x = self.conv2(x)
-        x = self.conv3(x)
-        x = self.maxpool2(x)
-
-        x = self.inception3a(x)
-        x = self.inception3b(x)
-        x = self.maxpool3(x)
-        x = self.inception4a(x)
-
-        x = self.inception4b(x)
-        x = self.inception4c(x)
-        x = self.inception4d(x)
-
-        x = self.inception4e(x)
-        x = self.maxpool4(x)
-        x = self.inception5a(x)
-        x = self.inception5b(x)
-        return x
 
 
 

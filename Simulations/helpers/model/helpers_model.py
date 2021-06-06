@@ -57,6 +57,8 @@ class NeuralNet:
         """
         self.resize_tp = resize_tp
         self.current_epoch +=1
+        scaler = torch.cuda.amp.GradScaler()
+        
         for i, data in enumerate(loader_train, 0):
             inputs, meta, labels = data
             
@@ -65,24 +67,25 @@ class NeuralNet:
             
             # zero the parameter gradients
             self.optimizer.zero_grad()
-            
-             # forward + backward + optimize
             loss = 0
-            if self.net_name=='BasicTabular':
-                outputs = self.net(meta)
-                
-            elif self.net_name=='BasicCNNTabular':
-                outputs = self.net(inputs,meta)
-            else:
-                outputs = self.net(inputs)
-                
-            if self.net_name == 'GoogleNet':
-                for output in zip(outputs):
-                    loss = loss + self.criterion(output, labels)      
-            else:
-                loss = self.criterion(outputs,labels)   
-            loss.backward()
-            self.optimizer.step()
+            
+            with torch.cuda.amp.autocast():
+             # forward + backward + optimize
+                if self.net_name=='BasicTabular':
+                    outputs = self.net(meta)
+
+                elif self.net_name=='BasicCNNTabular':
+                    outputs = self.net(inputs,meta)
+                else:
+                    outputs = self.net(inputs)
+
+                if self.net_name == 'GoogleNet':
+                    outputs = outputs[0]  
+                else:
+                    loss = self.criterion(outputs,labels)   
+            scaler.scale(loss).backward()
+            scaler.step(self.optimizer)
+            scaler.update()
             
             
     def test (self, loader_test, metric:str = 'auc', verbose:bool = True)->float:
@@ -108,11 +111,12 @@ class NeuralNet:
                     outputs = self.net(meta)
                 elif self.net_name=='BasicCNNTabular':
                     outputs = self.net(images,meta)
-                elif self.net_name=="GoogleNet":
-                    outputs, aux_1, aux_2 = self.net(images)
-                    outputs = (outputs + aux_1 + aux_2)/3
                 else:
                     outputs = self.net(images)
+                    
+                if self.net_name=="GoogleNet":
+                    outputs = outputs[0]
+                
                 predictions.extend(outputs.cpu().numpy())
                 targets.extend(labels.cpu().numpy())
             result = self.calculate_metrics(np.round(np.array(predictions)), np.array(targets))
@@ -159,7 +163,7 @@ class NeuralNet:
         """
         optimizers = {'SGD': optim.SGD(self.net.parameters(), lr=0.001),
                       'SGD/momentum': optim.SGD(self.net.parameters(), lr=0.001, momentum=0.9),
-                      'Adam': optim.Adam(self.net.parameters(), eps = 0.07)}
+                      'Adam': optim.AdamW(self.net.parameters(), eps = 0.07)}
         return optimizers[optimizer]
     
     
@@ -195,8 +199,8 @@ class NeuralNet:
                 'VGG16': vgg16_bn(in_channels = in_channels, out_channels = out_channels),
                 'DenseNet161': densenet161(in_channels = in_channels, out_channels = out_channels),
                 'DenseNet121': densenet121(in_channels = in_channels, out_channels = out_channels),
-                'GoogleNet': GoogLeNet(googlenet(True, None, 224, in_channels, out_channels)),
-                'SqueezeNet': squeezenet1_1(in_channels = in_channels, out_channels = out_channels)}
+                'GoogleNet': GoogLeNet(googlenet(False, None, 224, in_channels, out_channels)),
+                'SqueezeNet': squeezenet1_1(in_channels, out_channels)}
         return nets[net]
     
     
@@ -242,7 +246,7 @@ class NeuralNet:
             'epoch': self.current_epoch,
             'metric': self.max_met,
             'epoch/metric': np.array(self.epoch_metric)
-        }, self.save_path + name + ".pt")
+        }, self.save_path + name + ".pt", _use_new_zipfile_serialization = False)
         
 
     def load_checkpoint(self, name:str)->None:
