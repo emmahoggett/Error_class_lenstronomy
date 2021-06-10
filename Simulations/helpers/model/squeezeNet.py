@@ -136,22 +136,6 @@ class SqueezeNet(nn.Module):
                 Fire(384, 64, 256, 256),
                 Fire(512, 64, 256, 256),
             )
-        elif version == 'custom':
-            self.features = nn.Sequential(
-                nn.Conv2d(in_channels, 64, kernel_size=5, stride=1),
-                nn.ReLU(inplace=True),
-                nn.MaxPool2d(kernel_size=6, stride=1, ceil_mode=True),
-                Fire(64, 16, 64, 64),
-                Fire(128, 16, 64, 64),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(128, 32, 128, 128),
-                Fire(256, 32, 128, 128),
-                nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
-                Fire(256, 48, 192, 192),
-                Fire(384, 48, 192, 192),
-                Fire(384, 64, 256, 256),
-                Fire(512, 64, 256, 256),
-            )
             
         else:
             raise ValueError("Unsupported SqueezeNet version {version}:"
@@ -226,13 +210,4 @@ def squeezenet1_1(in_channels: int=1, num_classes: int=3, **kwargs: Any) -> Sque
     :return             : SqueezeNet, SqueezeNet model for the version 1.1
     """
     return _squeezenet('1_1', in_channels,num_classes, **kwargs)
-
-def squeezenetcustom(in_channels: int=1, num_classes: int=3, **kwargs: Any) -> SqueezeNet:
-    """
-    
-    :param in_channels  : int, number of input channels in the image - default : in_channels = 1
-    :param out_channels : int, number of output labels - default : out_channels = 2
-    :return             : SqueezeNet, SqueezeNet model for input image of (1,64,64)
-    """
-    return _squeezenet('custom', in_channels, num_classes, **kwargs)
 
