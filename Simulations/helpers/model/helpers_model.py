@@ -57,7 +57,6 @@ class NeuralNet:
         """
         self.resize_tp = resize_tp
         self.current_epoch +=1
-        scaler = torch.cuda.amp.GradScaler()
         
         for i, data in enumerate(loader_train, 0):
             inputs, meta, labels = data
@@ -69,23 +68,22 @@ class NeuralNet:
             self.optimizer.zero_grad()
             loss = 0
             
-            with torch.cuda.amp.autocast():
-             # forward + backward + optimize
-                if self.net_name=='BasicTabular':
-                    outputs = self.net(meta)
+            # forward + backward + optimize
+            if self.net_name=='BasicTabular':
+                outputs = self.net(meta)
 
-                elif self.net_name=='BasicCNNTabular':
-                    outputs = self.net(inputs,meta)
-                else:
-                    outputs = self.net(inputs)
+            elif self.net_name=='BasicCNNTabular':
+                outputs = self.net(inputs,meta)
+            else:
+                outputs = self.net(inputs)
 
-                if self.net_name == 'GoogleNet':
-                    outputs = outputs[0]  
-                else:
-                    loss = self.criterion(outputs,labels)   
-            scaler.scale(loss).backward()
-            scaler.step(self.optimizer)
-            scaler.update()
+            if self.net_name == 'GoogleNet':
+                outputs = outputs[0]  
+            else:
+                loss = self.criterion(outputs,labels)   
+            loss.backward()
+            self.optimizer.step()
+            
             
             
     def test (self, loader_test, metric:str = 'auc', verbose:bool = True)->float:
