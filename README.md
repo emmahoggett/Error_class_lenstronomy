@@ -1,12 +1,15 @@
-# LASTRO Classify errors from strong lens modelling with neural networks
+# LASTRO Classifying errors from strong lens modelling with neural networks
 
 ### Description
-Strong gravitational lensing modelling is a powerful method to scrutinize an object's unknown astrophysical and cosmological properties and enables a quantization of dark matter in the universe. Nevertheless, insidious errors often riddle generated models that need to be spot manually. Due to an increase in acquisition efficiency, this process becomes unpractical. Thereby, this project uses neural networks to classify residual maps as a key product of any lens modelling pipeline. The main application of such classifiers is to quickly and reliably obtain guidance for further refinement of a lens model while providing a study of degeneracies between model parameters. Our analysis shines a light on blended combinations of neural networks with an AUROC score of 0.998. 
+Strong gravitational lensing modelling is a powerful method to scrutinize an object's unknown astrophysical and cosmological properties and enables a quantization of dark matter in the universe. Nevertheless, insidious errors often riddle generated models that need to be spot manually. Due to an increase in acquisition efficiency, this process becomes unpractical. Thereby, this project uses neural networks to classify residual maps as a key product of any lens modelling pipeline. The main application of such classifiers is to quickly and reliably obtain guidance for further refinement of a lens model while providing a study of degeneracies between model parameters. Our analysis shines a light on blended combinations of neural networks with an AUROC prediction score of 0.950. 
 
 
 ### Getting Started
-This version was designed for python 3.6.6 or higher. The code is stored in the folder `Simulations/`. To run the model's calculation, it is only needed to execute the file `run.py`. On the terminal, the command is python `run.py`.
+This version was designed for python 3.6.6 or higher. The code is stored in the folder `Simulations/`. To run the model's calculation, it is only needed to execute the file `blending.ipynb` in Jupyter lab or Jupyter Notebook. To run the convolutionnal neural network models, launch the file `traincnn.ipynb` and make sure that the folder `model/checkpoints/` contain all used models. If it is not the case, remove the following lines before each training :
 
+```python
+netbasic.load_checkpoint('_current') 
+```
 ### Prerequisites
 
 
@@ -50,7 +53,7 @@ Simulated neural networks model :
 * `data/model/checkpoints/GoogleNet_optimal.pt` : optimal trained VGG11
 * `data/model/checkpoints/DenseNet161_optimal.pt` : optimal trained SqueezeNet
 
-In this folder (`data/model/checkpoints/`), models are also saved under the name `_current` which correspond to the neural network trained over 50 epochs.
+In this folder (`data/model/checkpoints/`), models are also saved under the name `_current` which correspond to the neural network trained over 50 or 30 epochs.
 
 
 #### Deeplenstronomy wrapper
@@ -66,8 +69,7 @@ To use the deeplenstronomy wrapper, the following library are installed :
 The yaml files are build according to the [DeepLenstronomy Configuration Files](https://deepskies.github.io/deeplenstronomy/Notebooks/ConfigFiles.html) instructions. Three examples are available in the section `deeplens/data/configFile/`.
 
 ### Additional content
-The `datanalysis.ipynb` and `datanalysis_chi2.py` are a notebook that contains some basic observations over the generated residuals and images. The first one have no consideration of noise-like and error-obvious maps, while the second take those considerations into account.
-The folder `Papers` contains scientific papers that inspired our project.
+The `datanalysis.ipynb` and `datanalysis_chi2.ipynb` are a notebook that contains some basic observations over the generated residuals and images. The first one have no consideration of noise-like and error-obvious maps, while the second take those considerations into account. The notebook `optimizer.ipynb` contain the code that performed the analysis over optimizers, while `ratio_percent_baseline.py` study the effect on imbalance and percentage errors.
 
 ### Documentation
 Papers used for the project are contained in the folder `Papers/`. This folder also contain the report for this project.
