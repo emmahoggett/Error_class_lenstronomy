@@ -24,7 +24,7 @@ The following librairies are used:
 The `fastell` library allows us to use the `PEMD` mass model.
 Strong gravitationnal lens libraries:
 * [lenstronomy](https://pypi.org/project/lenstronomy/): `pip install lenstronomy`
-* [fastell](https://github.com/sibirrer/fastell4py): 
+* [fastell](https://github.com/sibirrer/fastell4py): The repository must be cloned on the used computer
 ```python
  cd fastell4py
  python setup.py install --user
