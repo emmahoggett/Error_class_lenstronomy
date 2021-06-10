@@ -1,4 +1,5 @@
-# This file test each optimizer with a different percentage
+# This file test each optimizer with a different error percentage and different data balance
+# Here we consider the chi-squared limitattion and the absolute pixel amplitude
 
 import matplotlib.pyplot as plt
 import numpy as np
