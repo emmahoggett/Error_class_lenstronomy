@@ -38,11 +38,12 @@ To launch the code `run.py` use the following codes:
 
 #### Files
 As the Hubble Space Telescope(HST) model is used, it is necessary to provide a point-spread function(PSF). To do so, a PSF file from the [Time Delay Lens Modeling Challenge](https://tdlmc.github.io/) is selected, which is `rung0/code1/f160w-seed3/drizzled_image/psf.fits`. We selected this psf as we deal with pixelised HST-like observation with a the following configuration :
-	* Exposure time : 5400 [s]
-	* Sky brightness : 22
-	* Number of exposure : 1
-	* Seeing : None, the seeing is set by the PSF and correspond to the image resolution in arcsecond. For HST-like observation, the value should be around 0.08''
-	* PSF type : PIXEL
+
+> Exposure time : 5400 [s]
+> Sky brightness : 22
+> Number of exposure : 1
+> Seeing : None, the seeing is set by the PSF and correspond to the image resolution in arcsecond. For HST-like observation, the value should be around 0.08''
+> PSF type : PIXEL
 
 Simulated neural networks model :
 * `data/model/checkpoints/BasicCNN_optimal.pt` : optimal trained BasicCNN
@@ -60,8 +61,8 @@ In this folder (`data/model/checkpoints/`), models are also saved under the name
 `deeplenstronomy` is a wrapper of `lenstronomy` that enable a large generation of simulated strong gravitational lens. To use it, a yaml file must be filled by the user with the desired strong lens configurations. `lenstronomy` and `fastell` must be installed. With this wrapper, the point-spread function(PSF) for an HST observation model is not required.
 
 To use the deeplenstronomy wrapper, the following library are installed :
-*[deeplenstronomy](https://pypi.org/project/deeplenstronomy/): `pip install deeplenstronomy`
-*[PyYAML](https://pypi.org/project/PyYAML/): `pip install PyYAML`
+* [deeplenstronomy](https://pypi.org/project/deeplenstronomy/): `pip install deeplenstronomy`
+* [PyYAML](https://pypi.org/project/PyYAML/): `pip install PyYAML`
 
 `deeplenstronomy` is used in the folder `Simulations/deeplens/` and contain helpers to generate residual maps and a notebook `deeplens.ipynb` that contain some basic observations over the generated data.
 
