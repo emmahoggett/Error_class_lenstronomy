@@ -5,7 +5,7 @@ Strong gravitational lensing modelling is a powerful method to scrutinize an obj
 
 
 ### Getting Started
-This version was designed for python 3.6.6 or higher. The code is stored in the folder `Simulations/`. To run the model's calculation, it is only needed to execute the file `blending.ipynb` in Jupyter lab or Jupyter Notebook. To run the convolutional neural network models, launch the file `traincnn.ipynb` and ensure that the folder `model/checkpoints/` contain all used models. If it is not the case, remove the following lines before each training :
+This version was designed for python 3.6.6 or higher. The code is stored in the folder `Simulations/`. To run the model's calculation, it is only needed to execute the file `blending.ipynb` in Jupyter lab or Jupyter Notebook. To run the convolutional neural network models, launch the file `traincnn.ipynb` and ensure that the folder `model/checkpoints/` contain all used [models](https://drive.google.com/drive/folders/1TRWzx7hzKoBBLbV-Yk24aagejHkwG_aP?usp=sharing). If it is not the case, remove the following lines before each training :
 
 ```python
 netbasic.load_checkpoint('_current') 
